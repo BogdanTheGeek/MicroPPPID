@@ -1,3 +1,4 @@
 microdot
 simple-pid
 ujson
+jsmin

@@ -14,6 +14,7 @@ server = None
 class Server:
     port = PORT
     controller = None
+    compression = False
 
     def __init__(self, controller=None, port=PORT):
         self.port = port
@@ -27,6 +28,10 @@ class Server:
             "pause": self.controller.pause,
             "resume": self.controller.resume,
         }
+
+        if os.path.exists("static/index.html.gz"):
+            self.compression = True
+            print("Using gzipped index.html")
 
     async def start_server(self):
         print(f"Server running: http://localhost:{self.port}")
@@ -76,7 +81,10 @@ async def echo(request, ws):
 
 @app.route("/")
 async def index(request):
-    return send_file("static/index.html")
+    if server.compression:
+        return send_file("static/index.html", compressed=True, file_extension=".gz")
+    else:
+        return send_file("static/index.html")
 
 
 @app.route("/progs")

@@ -2,6 +2,7 @@
 .vscode
 
 **/venv
+**/build
 **/env
 **/dist
 
