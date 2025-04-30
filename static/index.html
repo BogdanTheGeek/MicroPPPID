@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+   <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <meta charset="UTF-8">
+   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+   <script src="script.js"></script>
+
+<body onload="onLoad()" onresize="onResize()">
+   <div class="tab">
+      <button class="tl active" onclick="switchTab(event,'TabLive')">Live</button>
+      <button class="tl" onclick="switchTab(event,'TabPrograms')">Programs</button>
+      <button class="tl" onclick="switchTab(event,'TabLogs')">Logs</button>
+      <button class="tl" onclick="switchTab(event,'TabSettings')">Settings</button>
+   </div>
+
+   <div id="TabLive" class="tc active">
+      <div id="canvas" style="min-width: 70%; flex:1;">
+      </div>
+      <div>
+         <fieldset style="margin-left: 16px">
+            <legend>Live Data</legend>
+            <p class="info" id="temp"></p>
+            <p class="info" id="target"></p>
+            <p class="info" id="current"></p>
+            <p class="info" id="duty"></p>
+         </fieldset>
+         <label for="program">Choose a Program:</label>
+         <select id="program" class="select"></select>
+         <table style="padding-left: 12px">
+            <tr>
+               <td><input id="startstop" type="button" class="button stopbutton" value="Start"></td>
+               <td><input id="pauseresume" type="button" class="button" value="Pause"></td>
+            </tr>
+         </table>
+      </div>
+   </div>
+
+   <div id="TabPrograms" class="tc">
+      <table>
+         <tr>
+            <td>Upload a Program</td>
+         </tr>
+         <tr>
+            <td>
+               <form id="fileform">
+                  <input type="file" id="file" name="file" />
+                  <input type="submit" value="Upload" />
+               </form>
+            </td>
+         </tr>
+         <tr>
+            <td>Available Programs</td>
+         </tr>
+         <tr>
+            <td>
+               <table id="programs">
+               </table>
+            </td>
+         </tr>
+      </table>
+   </div>
+   <div id="TabLogs" class="tc">
+      <p id="log"></p>
+   </div>
+   <div id="TabSettings" class="tc">
+      TODO
+   </div>
+</body>
+
+</html>

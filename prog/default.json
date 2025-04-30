@@ -1,0 +1,9 @@
+{
+   "name": "default",
+   "instructions": [
+      {"temp": 25.0, "time": 5},
+      {"temp": 35.0, "time": 10},
+      {"temp": 35.0, "time": 15},
+      {"temp": 20.0, "time": 20}
+   ]
+}

@@ -1,0 +1,20 @@
+#Ignore everything
+.vscode
+
+**/venv
+**/env
+**/dist
+
+**.swp
+**.swo
+**.session
+**.temp
+**/.DS_Store
+**/__pycache__
+**/.idea
+**/.cache
+
+tags
+
+todo.md
+notes.md
