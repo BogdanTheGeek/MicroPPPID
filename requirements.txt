@@ -3,3 +3,4 @@ simple-pid
 ujson
 jsmin
 rshell
+mpy-cross

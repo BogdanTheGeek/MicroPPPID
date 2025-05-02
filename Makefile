@@ -2,6 +2,7 @@
 python ?= python3
 
 SRC := $(wildcard *.py)
+SRC := $(filter-out main.py, $(SRC)) # MicroPython cannot execute main.mpy
 OBJ := $(patsubst %.py,build/%.mpy,$(SRC))
 
 LIB_SRC := $(shell find lib -type f -name '*.py')
@@ -58,6 +59,10 @@ build/static/%.js: static/%.js build/
 	@source venv/bin/activate && \
 	$(python) -m jsmin $< > $@
 
+build/main.py: main.py build/
+	@echo "Copying $< -> $@"
+	@cp $< $@
+
 $(BOARD_OBJ): $(BOARD) build/
 	@echo "Copying $< -> $@"
 	@cp board/* build/
@@ -73,17 +78,17 @@ $(LIB_OBJ): $(LIB_SRC) build/
 	mpy-cross $$(echo $@ | sed 's|build/lib/|lib/|' | sed 's|\.mpy$$|\.py|') -o $@
 
 .PHONY: bundle
-bundle: $(OBJ) $(LIB_OBJ) $(STATIC_OBJ) $(PROGS) $(BOARD_OBJ)
+bundle: $(OBJ) $(LIB_OBJ) $(STATIC_OBJ) $(PROGS) $(BOARD_OBJ) build/main.py
 	@echo "Project bundleed successfully."
 
 .PHONY: flash
-flash: bundle
+flash:
 	@echo "Flashing the project..."
 	@source venv/bin/activate && \
 	rshell -p $(ESPPORT) cp -r build/* /pyboard/
 
 .PHONY: sync
-sync: bundle
+sync:
 	@echo "Syncing the project..."
 	@source venv/bin/activate && \
 	rshell -p $(ESPPORT) rsync build/ /pyboard/

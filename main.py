@@ -4,6 +4,13 @@ from settings import Settings
 from controller import Controller
 import ujson as json
 
+try:
+    from connect import connect
+except ImportError:
+
+    def connect():
+        pass
+
 
 try:
     from time import ticks_ms
