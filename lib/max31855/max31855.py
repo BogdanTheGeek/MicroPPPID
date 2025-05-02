@@ -21,7 +21,7 @@ class MAX31855:
         try:
             self.spi.readinto(self.data)
         finally:
-            self.cs.value(1).cs.high()
+            self.cs.value(1)
         if self.data[3] & 0x01:
             raise RuntimeError("thermocouple not connected")
         if self.data[3] & 0x02:

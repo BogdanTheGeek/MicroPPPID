@@ -26,7 +26,7 @@ except ImportError:
 
 
 class TempSensor:
-    connected = False
+    connected = True
 
     def __init__(self):
         settings = Settings()
@@ -40,15 +40,18 @@ class TempSensor:
 
         spi = SPI(1, sck=sck, miso=miso, mosi=None)
         cs = Pin(settings.CS, Pin.OUT)
-        try:
-            self.sensor = MAX31855(spi, cs)
-            print("Temperature sensor initialized")
-            self.connected = True
-        except RuntimeError as e:
-            print(f"Error initializing temperature sensor: {e}")
-            self.connected = False
+        self.sensor = MAX31855(spi, cs)
+        print("Temperature sensor initialized")
 
     def read(self) -> float:
         if not self.connected:
             return 0.0
-        return self.sensor.temp
+
+        try:
+            temp = self.sensor.temp
+            self.connected = True
+            return temp
+        except RuntimeError as e:
+            print(f"Error reading temperature sensor: {e}")
+            self.connected = False
+        return 0.0

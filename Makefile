@@ -24,7 +24,7 @@ ESPPORT ?= /dev/tty.usb*
 run:
 	@echo "Running the project..."
 	@source venv/bin/activate && \
-	$(python) main.py
+	$(python) app.py
 
 .PHONY: init
 init: venv
