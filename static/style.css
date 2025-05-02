@@ -35,16 +35,12 @@ canvas{
 }
 table {
    font-size: inherit;
-   width: -webkit-fill-available;
-   width: -moz-available;
 }
 .button {
    color: white;
    background-color: #4934ec;
    border: none;
    min-width: 10ch;
-   width: -webkit-fill-available;
-   width: -moz-available;
    border-radius: 20px;
    font-weight: bolder;
    font-size: 20px;
@@ -142,13 +138,12 @@ table {
    padding: 6px 12px;
    border: 1px solid #ccc;
    border-top: none;
-   max-width: 100%;
    height: auto;
    flex-direction: row;
    flex-wrap: wrap;
 }
 .tc.active {
-   display: flex;
+   display: block;
 }
 
 .info {

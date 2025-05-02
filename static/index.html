@@ -10,13 +10,13 @@
 
 <body onload="onLoad()" onresize="onResize()">
    <div class="tab">
-      <button class="tl active" onclick="switchTab(event,'TabLive')">Live</button>
-      <button class="tl" onclick="switchTab(event,'TabPrograms')">Programs</button>
-      <button class="tl" onclick="switchTab(event,'TabLogs')">Logs</button>
-      <button class="tl" onclick="switchTab(event,'TabSettings')">Settings</button>
+      <button id="tl-live" class="tl" onclick="switchTab(event,'live')">Live</button>
+      <button id="tl-programs" class="tl" onclick="switchTab(event,'programs')">Programs</button>
+      <button id="tl-logs" class="tl" onclick="switchTab(event,'logs')">Logs</button>
+      <button id="tl-settings" class="tl" onclick="switchTab(event,'settings')">Settings</button>
    </div>
 
-   <div id="TabLive" class="tc active">
+   <div id="tc-live" class="tc">
       <div id="canvas" style="min-width: 70%; flex:1;">
       </div>
       <div>
@@ -26,9 +26,9 @@
             <p class="info" id="target"></p>
             <p class="info" id="current"></p>
             <p class="info" id="duty"></p>
+            <label for="program">Choose a Program:</label>
+            <select id="program" class="select"></select>
          </fieldset>
-         <label for="program">Choose a Program:</label>
-         <select id="program" class="select"></select>
          <table style="padding-left: 12px">
             <tr>
                <td><input id="startstop" type="button" class="button stopbutton" value="Start"></td>
@@ -38,35 +38,29 @@
       </div>
    </div>
 
-   <div id="TabPrograms" class="tc">
-      <table>
-         <tr>
-            <td>Upload a Program</td>
-         </tr>
-         <tr>
-            <td>
-               <form id="fileform">
-                  <input type="file" id="file" name="file" />
-                  <input type="submit" value="Upload" />
-               </form>
-            </td>
-         </tr>
-         <tr>
-            <td>Available Programs</td>
-         </tr>
-         <tr>
-            <td>
-               <table id="programs">
-               </table>
-            </td>
-         </tr>
-      </table>
+   <div id="tc-programs" class="tc">
+      <fieldset>
+         <legend>Upload</legend>
+         <form id="fileform">
+            <input type="file" id="file" name="file" />
+            <input type="submit" value="Upload" />
+         </form>
+      </fieldset>
+      <fieldset>
+         <legend>Available</legend>
+         <table id="programs"></table>
+      </fieldset>
    </div>
-   <div id="TabLogs" class="tc">
+   <div id="tc-logs" class="tc">
       <p id="log"></p>
    </div>
-   <div id="TabSettings" class="tc">
-      TODO
+   <div id="tc-settings" class="tc">
+      <fieldset>
+         <legend>Controller</legend>
+         <div id="settings" style="display:block;"></div>
+         <button id="save" class="button" onclick="saveSettings()">Save</button>
+         <button id="reset" class="button" onclick="resetSettings()">Reset</button>
+      </fieldset>
    </div>
 </body>
 

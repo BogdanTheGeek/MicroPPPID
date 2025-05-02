@@ -21,7 +21,7 @@ except ImportError:
             pass
 
     class SPI:
-        def __init__(self, sck=None, miso=None):
+        def __init__(*kargs, **kwargs):
             pass
 
 

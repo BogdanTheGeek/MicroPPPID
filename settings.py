@@ -4,24 +4,23 @@ settings = None
 
 
 class Settings:
-    # PID
-    Kp: float = 0.01
-    Ki: float = 0.001
-    Kd: float = 0.002
-    Period: float = 1.0
-    # Pinout
-    MISO: int = -1  # -1 means default
-    SCK: int = -1
-    CS: int = 10
-    RELAY: int = 4
-    # Wifi
-    SSID: str = ""
-    PASSWORD: str = ""
-
     def __new__(cls):
         global settings
         if settings is None:
             settings = super(Settings, cls).__new__(cls)
+            # PID
+            settings.Kp: float = 0.01
+            settings.Ki: float = 0.001
+            settings.Kd: float = 0.002
+            settings.Period: float = 1.0
+            # Pinout
+            settings.MISO: int = -1  # -1 means default
+            settings.SCK: int = -1
+            settings.CS: int = 10
+            settings.RELAY: int = 4
+            # Wifi
+            settings.SSID: str = ""
+            settings.PASSWORD: str = ""
             settings.load()
         return settings
 
@@ -29,20 +28,24 @@ class Settings:
         try:
             with open("settings.json", "r") as file:
                 data = json.load(file)
-                for key, value in data.items():
-                    if hasattr(self, key):
-                        setattr(self, key, value)
+                self.update(data)
         except json.JSONDecodeError:
             print("Error decoding JSON from settings file")
         except FileNotFoundError:
             print("Settings file not found, using default values")
             pass
 
-    def save(self):
-        data = self.__dict__
+    def update(self, data):
+        for key, value in data.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+
+    def save(self, data=None):
+        if data:
+            self.update(data)
         try:
             with open("settings.json", "w") as file:
-                json.dump(data, file, indent=4)
+                json.dump(self.__dict__, file, indent=4)
         except Exception as e:
             print(f"Error saving settings: {e}")
         pass

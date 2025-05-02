@@ -69,19 +69,14 @@ function generateSamples() {
 }
 
 
-function log(text, color) {
-   console.log(text);
-   document.getElementById('log').innerHTML += `<span style="color: ${color}">${text}</span><br>`;
-};
-
 function connect() {
    ws = new WebSocket('ws://' + location.host + '/ws');
    ws.onopen = function() {
-      log('Socket is open', 'green');
+      console.log('Socket is open');
    };
 
    ws.onmessage = function(e) {
-      log('Message:' + e.data);
+      console.log('Message:' + e.data);
       const status = JSON.parse(e.data);
       state = new ControllerState(status);
       updateReadings(state);
@@ -95,7 +90,7 @@ function connect() {
    };
 
    ws.onerror = function(err) {
-      log('Socket encountered error: ' + err.message, 'red');
+      console.log('Socket encountered error: ' + err.message);
       ws.close();
    };
 
@@ -147,20 +142,21 @@ function addData(status) {
  * @param {string} newTabName: The new tab name
  * @return None
  */
-function switchTab(event, newTabName) {
+function switchTab(_, newTabName) {
+   document.location.href = "#" + newTabName;
 
    const tabLabels = document.getElementsByClassName("tl");
    for (e of tabLabels) {
-      e.className = e.className.replace(" active", "");
+      e.className = "tl";
    }
 
    const tabContents = document.getElementsByClassName("tc");
    for (e of tabContents) {
-      e.className = e.className.replace(" active", "");
+      e.className = "tc";
    }
 
-   document.getElementById(newTabName).className += " active";
-   event.currentTarget.className += " active";
+   document.getElementById("tc-" + newTabName).className += " active";
+   document.getElementById("tl-" + newTabName).className += " active";
 
    onResize();
    updateLayout();
@@ -194,7 +190,7 @@ function updateReadings(status) {
  * @return None
  */
 function onResize() {
-   const tab = document.getElementById("TabLive");
+   const tab = document.getElementById("tc-live");
    tab.style.height = window.innerHeight - tab.offsetTop - 10 + "px";
 }
 
@@ -254,7 +250,7 @@ function loadProgram() {
       .then(response => response.json())
       .then(data => {
          console.log(data);
-         log("Program loaded: " + program, "green");
+         console.log("Program loaded: " + program);
       })
       .catch(error => {
          console.error('Error loading program:', error);
@@ -275,7 +271,6 @@ function createProgramList(programs) {
       const row = document.createElement("tr");
       const cell = document.createElement("td");
       cell.innerHTML = program;
-      row.appendChild(cell);
       const cell2 = document.createElement("td");
       const deleteButton = document.createElement("button");
       deleteButton.innerHTML = "❌";
@@ -284,7 +279,7 @@ function createProgramList(programs) {
          fetch(url)
             .then(data => {
                console.log(data);
-               log("Program deleted: " + program, "green");
+               console.log("Program deleted: " + program);
                getPrograms();
             })
             .catch(error => {
@@ -293,6 +288,7 @@ function createProgramList(programs) {
       };
       cell2.appendChild(deleteButton);
       row.appendChild(cell2);
+      row.appendChild(cell);
       table.appendChild(row);
    }
 }
@@ -338,12 +334,106 @@ async function upload(ev) {
       },
    }).then(res => {
       if (res.ok) {
-         log("File uploaded", "green");
+         console.log("File uploaded");
          getPrograms();
       } else {
-         log("Error uploading file", "red");
+         console.log("Error uploading file");
       }
    });
+}
+
+function getSettings() {
+   const url = '/settings';
+   console.log("Fetching settings");
+   fetch(url)
+      .then(response => response.json())
+      .then(data => {
+         console.log("Settings received", data);
+         const settings = document.getElementById("settings");
+         settings.innerHTML = "";
+         const form = document.createElement("form");
+         form.id = "settingsform";
+         const table = document.createElement("table");
+         for (const key in data) {
+            const row = document.createElement("tr");
+            const label = document.createElement("label");
+            label.innerHTML = key;
+            label.setAttribute("for", key);
+            const input = document.createElement("input");
+            input.name = key;
+            switch (typeof data[key]) {
+               case "string":
+                  input.type = "text";
+                  input.value = data[key];
+                  break;
+               case "number":
+                  input.type = "number";
+                  input.value = data[key];
+                  break;
+               case "boolean":
+                  input.type = "checkbox";
+                  input.checked = data[key];
+                  break;
+               default:
+                  console.log("Unknown type: ", typeof data[key]);
+            }
+            const cell1 = document.createElement("td");
+            cell1.appendChild(label);
+            row.appendChild(cell1);
+            const cell2 = document.createElement("td");
+            cell2.appendChild(input);
+            row.appendChild(cell2);
+            table.appendChild(row);
+         }
+         form.appendChild(table);
+         settings.appendChild(form);
+      })
+      .catch(error => {
+         console.error('Error fetching programs:', error);
+      });
+}
+
+function saveSettings() {
+   const form = document.getElementById("settingsform");
+   const data = {};
+   for (const p of form) {
+      value = null;
+      switch (p.type) {
+         case "checkbox":
+            value = p.checked;
+            break;
+         case "number":
+            value = parseFloat(p.value);
+            break;
+         case "text":
+            value = p.value;
+            break;
+         default:
+            console.log("Unknown type: ", p.type);
+            continue;
+      }
+      data[p.name] = value;
+   }
+   console.log("Saving settings", data);
+   const url = '/settings';
+   fetch(url, {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+   }).then(res => {
+      if (res.ok) {
+         console.log("Settings saved");
+         getSettings();
+      } else {
+         console.log("Error saving settings");
+      }
+   });
+}
+
+function resetSettings() {
+   getSettings();
 }
 
 /**
@@ -352,6 +442,7 @@ async function upload(ev) {
  * @return None
  */
 function onLoad() {
+   console.log("Loading page");
 
    const layout = {
       autosize: true,
@@ -362,6 +453,9 @@ function onLoad() {
    const config = { responsive: true }
    Plotly.newPlot('canvas', traces, layout, config);
 
+   const tab = document.location.hash || "#live";
+   switchTab(null, tab.substring(1));
+
    onResize();
    updateReadings(state);
 
@@ -369,7 +463,7 @@ function onLoad() {
 
    document.getElementById('startstop').onclick = () => {
       if (state.paused) {
-         log("Controller is paused", "red");
+         console.log("Controller is paused");
          return;
       }
       if (state.running) {
@@ -382,7 +476,7 @@ function onLoad() {
    }
    document.getElementById('pauseresume').onclick = () => {
       if (!state.running) {
-         log("Controller is not running", "red");
+         console.log("Controller is not running");
          return;
       }
       if (state.paused) {
@@ -396,6 +490,7 @@ function onLoad() {
 
    document.getElementById('fileform').addEventListener('submit', upload);
    getPrograms();
+   getSettings();
 
 }
 

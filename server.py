@@ -1,6 +1,7 @@
 from microdot import Microdot, send_file
 from microdot.websocket import with_websocket
 import ujson as json
+from settings import Settings
 import os
 
 app = Microdot()
@@ -101,6 +102,23 @@ async def progs(request):
 @app.route("/load/<name>")
 async def load(request, name):
     server.controller.set_program(name)
+
+
+@app.get("/settings")
+async def get_settings(request):
+    settings = Settings()
+    data = settings.__dict__
+    print("Settings sent: ", data)
+    return json.dumps(data)
+
+
+@app.post("/settings")
+async def set_settings(request):
+    print("New settings received: ", request.json)
+    data = request.json
+    settings = Settings()
+    settings.save(data)
+    return "Settings saved", 200
 
 
 @app.post("/upload")
