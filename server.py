@@ -2,14 +2,14 @@ from microdot import Microdot, send_file
 from microdot.websocket import with_websocket
 import ujson as json
 from settings import Settings
+from logger import Logger
 import os
 
+log = Logger(__name__)
 app = Microdot()
-PORT = 80
-
 websocket = None
-
 server = None
+PORT = 80
 
 
 class Server:
@@ -33,13 +33,13 @@ class Server:
         try:
             open("static/index.html.gz", "r").close()
             self.compression = True
-            print("Using gzipped index.html")
+            log.info("Using gzipped index.html")
         except FileNotFoundError:
             self.compression = False
-            print("Using uncompressed index.html")
+            log.info("Using uncompressed index.html")
 
     async def start_server(self):
-        print(f"Server running: http://localhost:{self.port}")
+        log.info(f"Server running: http://localhost:{self.port}")
         await app.start_server(port=self.port)
 
     async def push(self, data) -> bool:
@@ -48,7 +48,7 @@ class Server:
                 await websocket.send(data)
                 return True
             except Exception as e:
-                print(f"Error sending data: {e}")
+                log.error(f"Error sending data: {e}")
                 return False
         return False
 
@@ -56,14 +56,14 @@ class Server:
         if command in self.command_lookup:
             self.command_lookup[command]()
         else:
-            print(f"Unknown command: {command}")
+            log.error(f"Unknown command: {command}")
             return False
 
 
 @app.route("/ws")
 @with_websocket
 async def echo(request, ws):
-    print("WebSocket connection established")
+    log.info("WebSocket connection established")
     global websocket
     websocket = ws
     while True:
@@ -72,15 +72,15 @@ async def echo(request, ws):
             data = json.loads(data)
             if "command" in data:
                 command = data["command"]
-                print(f"Command received: {command}")
+                log.info(f"Command received: {command}")
                 server.command_handler(command)
                 await server.push(json.dumps(server.controller.info()))
 
         except ValueError:
-            print(f"Invalid JSON received: {data}")
+            log.error(f"Invalid JSON received: {data}")
             continue
 
-    print("WebSocket connection closed")
+    log.info("WebSocket connection closed")
     websocket = None
 
 
@@ -108,13 +108,13 @@ async def load(request, name):
 async def get_settings(request):
     settings = Settings()
     data = settings.__dict__
-    print("Settings sent: ", data)
+    log.debug(f"Settings sent: {data}")
     return json.dumps(data)
 
 
 @app.post("/settings")
 async def set_settings(request):
-    print("New settings received: ", request.json)
+    log.debug(f"New settings received: {request.json}")
     data = request.json
     settings = Settings()
     settings.save(data)
@@ -137,7 +137,7 @@ async def upload(request):
             f.write(chunk)
             size -= len(chunk)
 
-    print("Successfully saved file: " + filename)
+    log.info("Successfully saved file: " + filename)
     return "File uploaded successfully", 200
 
 
@@ -145,19 +145,19 @@ async def upload(request):
 async def delete(request, name):
     try:
         os.remove("prog/" + name)
-        print(f"Deleted file: {name}")
+        log.info(f"Deleted file: {name}")
         return "File deleted successfully"
     except FileNotFoundError:
-        print(f"File not found: {name}")
+        log.error(f"File not found: {name}")
         return "File not found", 404
     except Exception as e:
-        print(f"Error deleting file: {e}")
+        log.error(f"Error deleting file: {e}")
         return "Error deleting file", 500
 
 
 @app.route("/<path:path>")
 async def static(request, path):
-    print(f"Requested path: {path}")
+    log.debug(f"Requested path: {path}")
     if ".." in path:
         # directory traversal is not allowed
         return "Not found", 404
@@ -177,4 +177,4 @@ if __name__ == "__main__":
         # Start the server
         server.start_server()
     except KeyboardInterrupt:
-        print("Server stopped by user.")
+        log.warning("Server stopped by user.")

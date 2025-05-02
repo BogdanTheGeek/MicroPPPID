@@ -2,9 +2,23 @@ from settings import Settings
 from temp_sensor import TempSensor
 from relay import PWMRelay
 from program import Program
+from simple_pid import PID
+from logger import Logger
+from current_clamp import CT
 import time
 
-from simple_pid import PID
+log = Logger(__name__)
+
+try:
+    from machine import WDT
+except ImportError:
+
+    class WDT:
+        def __init__(self, timeout):
+            pass
+
+        def feed(self):
+            pass
 
 
 class Controller:
@@ -19,6 +33,8 @@ class Controller:
     def __init__(self):
         settings = Settings()
 
+        self.wdt = WDT(timeout=int(1 + settings.Period) * 1000 * 3)
+
         self.pid = PID(
             settings.Kp,
             settings.Ki,
@@ -30,6 +46,14 @@ class Controller:
         self.temp_sensor = TempSensor()
         self.relay = PWMRelay()
         self.set_program("default.json")
+        self.ct = CT(
+            settings.CTPin,
+            rating=settings.CTRating,
+            sample_rate=settings.CTSampleRate,
+            sample_count=settings.CTSampleCount,
+        )
+        self.ct.calibrate()
+        self.ct.start()
 
     def get_setpoint(self):
         if self.program is None:
@@ -52,7 +76,7 @@ class Controller:
         try:
             self.program = Program(name)
         except Exception as e:
-            print(f"Error loading {name} program: {e}")
+            log.error(f"Error loading {name} program: {e}")
             self.program = None
 
     def start(self):
@@ -89,6 +113,7 @@ class Controller:
 
     def loop(self):
         self.temp = self.temp_sensor.read()
+        self.wdt.feed()
 
         if not self.running:
             return
@@ -107,4 +132,5 @@ class Controller:
             "running": self.running,
             "runtime": self.runtime(),
             "paused": self.paused,
+            "current": self.ct.current,
         }

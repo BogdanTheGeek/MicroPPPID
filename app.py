@@ -3,17 +3,11 @@ from server import Server
 from settings import Settings
 from controller import Controller
 import ujson as json
+from logger import Logger
+from utils import millis
+import sys
 
-try:
-    from time import ticks_ms
-
-    def millis():
-        return ticks_ms()
-except ImportError:
-    from time import time
-
-    def millis():
-        return int(time() * 1000)
+log = Logger(__name__)
 
 
 async def main():
@@ -34,7 +28,7 @@ async def main():
             await asyncio.sleep(settings.Period - loop_time)
         else:
             # TODO: log error
-            print(f"Warning: Control loop took too long! {loop_time} seconds")
+            log.error(f"Warning: Control loop took too long! {loop_time} seconds")
             pass
 
     # cleanup before ending the application
@@ -45,11 +39,12 @@ def run():
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Server stopped by user.")
+        log.info("Server stopped by user.")
     except Exception as e:
-        print(f"Error: {e}")
+        log.error(f"Error: {e}")
+        sys.print_exception(e)
     finally:
-        print("Exiting...")
+        log.info("Exiting...")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,7 @@
 import ujson as json
+from logger import Logger
+
+log = Logger(__name__)
 
 
 class Instruction:
@@ -19,12 +22,12 @@ class Program:
             data = json.load(file)
             self.name = data["name"]
             self.instructions = [Instruction(**inst) for inst in data["instructions"]]
-        print(f"Loaded program {name} with {len(self.instructions)} instructions")
+        log.debug(f"Loaded program {name} with {len(self.instructions)} instructions")
 
     def save(self, name):
         with open(name, "w") as file:
             json.dump(self, file, default=serialize, indent=0)
-        print(f"Saved program {name} with {len(self.instructions)} instructions")
+        log.debug(f"Saved program {name} with {len(self.instructions)} instructions")
 
     def get_setpoint(self, runtime=0):
         if self.instructions is None:

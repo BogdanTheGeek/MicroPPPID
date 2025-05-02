@@ -1,4 +1,7 @@
 from settings import Settings
+from logger import Logger
+
+log = Logger(__name__)
 
 try:
     from max31855 import MAX31855
@@ -41,7 +44,7 @@ class TempSensor:
         spi = SPI(1, sck=sck, miso=miso, mosi=None)
         cs = Pin(settings.CS, Pin.OUT)
         self.sensor = MAX31855(spi, cs)
-        print("Temperature sensor initialized")
+        log.info("Temperature sensor initialized")
 
     def read(self) -> float:
         if not self.connected:
@@ -52,6 +55,6 @@ class TempSensor:
             self.connected = True
             return temp
         except RuntimeError as e:
-            print(f"Error reading temperature sensor: {e}")
+            log.error(f"Error reading temperature sensor: {e}")
             self.connected = False
         return 0.0

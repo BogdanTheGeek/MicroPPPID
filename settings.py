@@ -1,5 +1,7 @@
 import ujson as json
+from logger import Logger
 
+log = Logger(__name__)
 settings = None
 
 
@@ -21,6 +23,11 @@ class Settings:
             # Wifi
             settings.SSID: str = ""
             settings.PASSWORD: str = ""
+            # CT
+            settings.CTPin: int = -1
+            settings.CTRating: float = 30
+            settings.CTSampleRate: float = 1200
+            settings.CTSampleCount: int = 1000
             settings.load()
         return settings
 
@@ -30,9 +37,9 @@ class Settings:
                 data = json.load(file)
                 self.update(data)
         except json.JSONDecodeError:
-            print("Error decoding JSON from settings file")
+            log.error("Error decoding JSON from settings file")
         except FileNotFoundError:
-            print("Settings file not found, using default values")
+            log.warning("Settings file not found, using default values")
             pass
 
     def update(self, data):
@@ -47,5 +54,5 @@ class Settings:
             with open("settings.json", "w") as file:
                 json.dump(self.__dict__, file, indent=4)
         except Exception as e:
-            print(f"Error saving settings: {e}")
+            log.error(f"Error saving settings: {e}")
         pass

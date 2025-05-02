@@ -77,9 +77,14 @@ function connect() {
 
    ws.onmessage = function(e) {
       console.log('Message:' + e.data);
-      const status = JSON.parse(e.data);
-      state = new ControllerState(status);
-      updateReadings(state);
+      try {
+         const status = JSON.parse(e.data);
+         state = new ControllerState(status);
+         updateReadings(state);
+      }
+      catch {
+         log(e.data)
+      }
    };
 
    ws.onclose = function(e) {
