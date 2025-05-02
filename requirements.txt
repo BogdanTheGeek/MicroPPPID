@@ -2,3 +2,4 @@ microdot
 simple-pid
 ujson
 jsmin
+rshell

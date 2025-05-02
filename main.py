@@ -42,8 +42,16 @@ async def main():
     await server_task
 
 
-if __name__ == "__main__":
+def run():
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         print("Server stopped by user.")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        print("Exiting...")
+
+
+if __name__ == "__main__":
+    run()

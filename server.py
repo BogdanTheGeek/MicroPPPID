@@ -29,9 +29,13 @@ class Server:
             "resume": self.controller.resume,
         }
 
-        if os.path.exists("static/index.html.gz"):
+        try:
+            open("static/index.html.gz", "r").close()
             self.compression = True
             print("Using gzipped index.html")
+        except FileNotFoundError:
+            self.compression = False
+            print("Using uncompressed index.html")
 
     async def start_server(self):
         print(f"Server running: http://localhost:{self.port}")

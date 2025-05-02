@@ -5,18 +5,18 @@ settings = None
 
 class Settings:
     # PID
-    Kp = 0.01
-    Ki = 0.001
-    Kd = 0.002
-    Period = 1.0
+    Kp: float = 0.01
+    Ki: float = 0.001
+    Kd: float = 0.002
+    Period: float = 1.0
     # Pinout
-    MISO = -1  # -1 means default
-    SCK = -1
-    CS = 10
-    RELAY = 4
+    MISO: int = -1  # -1 means default
+    SCK: int = -1
+    CS: int = 10
+    RELAY: int = 4
     # Wifi
-    SSID = None
-    PASSWORD = None
+    SSID: str = ""
+    PASSWORD: str = ""
 
     def __new__(cls):
         global settings
@@ -29,16 +29,9 @@ class Settings:
         try:
             with open("settings.json", "r") as file:
                 data = json.load(file)
-                self.Kp = data.get("Kp", self.Kp)
-                self.Ki = data.get("Ki", self.Ki)
-                self.Kd = data.get("Kd", self.Kd)
-                self.Period = data.get("Period", self.Period)
-                self.MISO = data.get("MISO", self.MISO)
-                self.SCK = data.get("SCK", self.SCK)
-                self.CS = data.get("CS", self.CS)
-                self.RELAY = data.get("RELAY", self.RELAY)
-                self.SSID = data.get("SSID", self.SSID)
-                self.PASSWORD = data.get("PASSWORD", self.PASSWORD)
+                for key, value in data.items():
+                    if hasattr(self, key):
+                        setattr(self, key, value)
         except json.JSONDecodeError:
             print("Error decoding JSON from settings file")
         except FileNotFoundError:
@@ -46,18 +39,7 @@ class Settings:
             pass
 
     def save(self):
-        data = {
-            "Kp": self.Kp,
-            "Ki": self.Ki,
-            "Kd": self.Kd,
-            "Period": self.Period,
-            "MISO": self.MISO,
-            "SCK": self.SCK,
-            "CS": self.CS,
-            "RELAY": self.RELAY,
-            "SSID": self.SSID,
-            "PASSWORD": self.PASSWORD,
-        }
+        data = self.__dict__
         try:
             with open("settings.json", "w") as file:
                 json.dump(data, file, indent=4)

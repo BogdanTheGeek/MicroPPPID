@@ -4,10 +4,7 @@ from relay import PWMRelay
 from program import Program
 import time
 
-try:
-    from PID import PID
-except ImportError:
-    from simple_pid import PID
+from simple_pid import PID
 
 
 class Controller:
