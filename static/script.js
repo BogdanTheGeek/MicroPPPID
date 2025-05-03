@@ -21,6 +21,9 @@ class ControllerState {
       this.runtime = data.runtime || 0;
       this.running = data.running || false;
       this.paused = data.paused || false;
+      this.p = data.p || 0;
+      this.i = data.i || 0;
+      this.d = data.d || 0;
       return;
    }
 }
@@ -33,23 +36,23 @@ class ControllerState {
 // Module global variables
 //------------------------------------------------------------------------------
 
-var interval;
+var g_ws = null;
 
 var state = new ControllerState({});
 
 var traces = [{
-   name: 'Tempearture',
-   ...generateSamples(),
+   name: 'Temperature',
+   x: [new Date()], y: [0],
    mode: 'lines',
    line: { color: '#4934ec', shape: 'spline' }
 }, {
    name: 'Target',
-   ...generateSamples(),
+   x: [new Date()], y: [0],
    mode: 'lines',
    line: { color: '#ecc734', shape: 'spline' }
 }, {
    name: 'Current',
-   ...generateSamples(),
+   x: [new Date()], y: [0],
    mode: 'lines',
    line: { color: '#ec6b34', shape: 'spline' },
    yaxis: 'y2'
@@ -91,7 +94,7 @@ function connect() {
    ws.onclose = function(e) {
       console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
       setTimeout(function() {
-         ws = connect();
+         g_ws = connect();
       }, 1000);
    };
 
@@ -138,6 +141,7 @@ function addData(status) {
    traces[1].y.push(status.target);
    traces[2].x.push(timestamp);
    traces[2].y.push(status.current);
+   traces[3].x.push(timestamp);
 
    updateLayout();
 }
@@ -183,6 +187,14 @@ function updateReadings(status) {
    document.getElementById("target").innerHTML = "Target: " + round(status.target, 0) + '°C';
    document.getElementById("current").innerHTML = "Current: " + round(status.current, 1) + 'A';
    document.getElementById("duty").innerHTML = "Duty: " + round(status.duty * 100, 1) + '%';
+   document.getElementById("p").innerHTML = "P: " + round(status.p, 3);
+   document.getElementById("i").innerHTML = "I: " + round(status.i, 3);
+   document.getElementById("d").innerHTML = "D: " + round(status.d, 3);
+
+   const hours = Math.floor(status.runtime / 3600);
+   const minutes = Math.floor((status.runtime % 3600) / 60);
+   const seconds = Math.floor(status.runtime % 60);
+   document.getElementById("runtime").innerHTML = `Runtime: ${hours}h ${minutes}m ${seconds}s`;
 
    updateStartStopButton();
    updatePauseResumeButton();
@@ -254,7 +266,6 @@ function loadProgram() {
    const program = select.options[select.selectedIndex].value;
    const url = '/load/' + program;
    fetch(url)
-      .then(response => response.json())
       .then(data => {
          console.log(data);
          console.log("Program loaded: " + program);
@@ -263,6 +274,29 @@ function loadProgram() {
          console.error('Error loading program:', error);
          select.selectedIndex = 0;
       });
+}
+
+function setSetpoint() {
+   const setpoint = parseFloat(document.getElementById("setpoint").value);
+   if (isNaN(setpoint)) {
+      console.error("Invalid setpoint");
+      return;
+   }
+   const data = { setpoint: setpoint };
+   const url = '/setpoint';
+   fetch(url, {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+   }).then(data => {
+      console.log(data);
+      console.log("Setpoint set: " + setpoint);
+      updateStartStopButton();
+   }).catch(error => {
+      console.error('Error setting setpoint:', error);
+   });
 }
 
 /**
@@ -326,6 +360,12 @@ function getPrograms() {
          console.error('Error fetching programs:', error);
       });
 }
+
+/**
+   * @brief  Upload a file to the server
+   * @param  {Event} ev: The event
+   * @return None
+   */
 async function upload(ev) {
    ev.preventDefault();
    const file = document.getElementById('file').files[0];
@@ -349,6 +389,12 @@ async function upload(ev) {
    });
 }
 
+/**
+   * @brief  Create a setting field
+   * @param  {string} key: The setting key
+   * @param  {string|number|boolean} value: The setting value
+   * @return {HTMLElement} The setting field element
+   */
 function createSettingField(key, value) {
    const row = document.createElement("tr");
    const label = document.createElement("label");
@@ -400,6 +446,11 @@ function createSettingGroup(name, data) {
 }
 
 
+/**
+   * @brief  Get the settings from the controller
+   * @param  None
+   * @return None
+   */
 function getSettings() {
    const url = '/settings';
    console.log("Fetching settings");
@@ -432,6 +483,11 @@ function getSettings() {
       });
 }
 
+/**
+   * @brief  Save the settings onto the controller
+   * @param  None
+   * @return None
+   */
 function saveSettings() {
    const form = document.getElementById("settingsform");
    const data = {};
@@ -474,14 +530,44 @@ function saveSettings() {
       if (res.ok) {
          console.log("Settings saved");
          getSettings();
+         sendCommand(g_ws, "reset");
       } else {
          console.log("Error saving settings");
       }
    });
 }
 
+/**
+   * @brief  Reset the settings to default
+   * @param  None
+   * @return None
+   */
 function resetSettings() {
    getSettings();
+}
+
+/**
+   * @brief  Download the settings locally as a JSON file
+   * @param  None
+   * @return None
+   */
+function downloadSettings() {
+   const url = '/settings';
+   fetch(url)
+      .then(response => response.json())
+      .then(data => {
+         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+         const url = URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = 'settings.json';
+         document.body.appendChild(a);
+         a.click();
+         document.body.removeChild(a);
+      })
+      .catch(error => {
+         console.error('Error downloading settings:', error);
+      });
 }
 
 /**
@@ -499,11 +585,12 @@ function onLoad() {
       yaxis: {
          automargin: true,
          ticksuffix: '°C',
+         side: 'right',
       },
       yaxis2: {
          automargin: true,
          overlaying: 'y',
-         side: 'right',
+         side: 'left',
          showgrid: false,
          zeroline: false,
          ticksuffix: ' A',
@@ -518,7 +605,7 @@ function onLoad() {
    onResize();
    updateReadings(state);
 
-   ws = connect();
+   g_ws = connect();
 
    document.getElementById('startstop').onclick = () => {
       if (state.running) {
@@ -527,7 +614,7 @@ function onLoad() {
       else {
          command = "start";
       }
-      sendCommand(ws, command);
+      sendCommand(g_ws, command);
    }
    document.getElementById('pauseresume').onclick = () => {
       if (!state.running) {
@@ -540,7 +627,7 @@ function onLoad() {
       else {
          command = "pause";
       }
-      sendCommand(ws, command);
+      sendCommand(g_ws, command);
    }
 
    document.getElementById('fileform').addEventListener('submit', upload);

@@ -28,6 +28,7 @@ class Server:
             "stop": self.controller.stop,
             "pause": self.controller.pause,
             "resume": self.controller.resume,
+            "reset": self.controller.reset,
         }
 
         try:
@@ -119,6 +120,20 @@ async def set_settings(request):
     settings = Settings()
     settings.save(data)
     return "Settings saved", 200
+
+
+@app.post("/setpoint")
+async def set_setpoint(request):
+    server.controller.set_program()
+    data = request.json
+    if "setpoint" in data:
+        server.controller.setpoint = data["setpoint"]
+        server.controller.start()
+        log.info(f"Setpoint set to: {server.controller.setpoint}")
+    else:
+        log.error("No setpoint provided")
+        return "No setpoint provided", 400
+    return "Setpoint set", 200
 
 
 @app.post("/upload")

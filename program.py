@@ -47,6 +47,8 @@ class Program:
             # Linear interpolation
             delta_time = inst.time - last.time
             delta_temp = inst.temp - last.temp
+            if delta_time == 0:
+                return last.temp
             ratio = (runtime - last.time) / delta_time
             return last.temp + ratio * delta_temp
 

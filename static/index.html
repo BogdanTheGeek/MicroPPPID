@@ -19,23 +19,40 @@
    <div id="tc-live" class="tc">
       <div id="canvas" style="min-width: 70%; flex:1;">
       </div>
-      <div>
-         <fieldset style="margin-left: 16px">
-            <legend>Live Data</legend>
-            <p class="info" id="temp"></p>
-            <p class="info" id="target"></p>
-            <p class="info" id="current"></p>
-            <p class="info" id="duty"></p>
-            <label for="program">Choose a Program:</label>
-            <select id="program" class="select"></select>
-         </fieldset>
-         <table style="padding-left: 12px">
-            <tr>
-               <td><input id="startstop" type="button" class="button stopbutton" value="Start"></td>
-               <td><input id="pauseresume" type="button" class="button" value="Pause"></td>
-            </tr>
-         </table>
-      </div>
+      <table>
+         <tr>
+            <td style="align-content: baseline">
+               <fieldset class="livedata">
+                  <legend>Live Data</legend>
+                  <p class="info" id="runtime"></p>
+                  <p class="info" id="temp"></p>
+                  <p class="info" id="target"></p>
+                  <p class="info" id="current"></p>
+                  <p class="info" id="duty"></p>
+                  <p class="info" id="p"></p>
+                  <p class="info" id="i"></p>
+                  <p class="info" id="d"></p>
+               </fieldset>
+            </td>
+            <td style="align-content: baseline">
+               <fieldset class="livedata">
+                  <legend>Controls</legend>
+                  <label for="program">Choose a Program:</label>
+                  <select id="program" class="select"></select>
+                  <br>
+                  <label for="setpoint">Setpoint:</label>
+                  <input id="setpoint" type="number" value="25"></input>
+                  <input type="button" id="setpointbutton" value="Set" onclick="setSetpoint()"></input>
+                  <table style="padding-left: 12px">
+                     <tr>
+                        <td><input id="startstop" type="button" class="button stopbutton" value="Start"></td>
+                        <td><input id="pauseresume" type="button" class="button" value="Pause"></td>
+                     </tr>
+                  </table>
+               </fieldset>
+            </td>
+         </tr>
+      </table>
    </div>
 
    <div id="tc-programs" class="tc">
@@ -58,6 +75,8 @@
       <div id="settings" style="display:block;"></div>
       <button id="save" class="button" onclick="saveSettings()">Save</button>
       <button id="reset" class="button" onclick="resetSettings()">Reset</button>
+      <br>
+      <button id="download" class="button" onclick="downloadSettings()">Download</button>
    </div>
 </body>
 

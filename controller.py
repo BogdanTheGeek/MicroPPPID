@@ -31,17 +31,17 @@ class Controller:
     paused = False
 
     def __init__(self):
-        settings = Settings()
+        self.settings = Settings()
 
-        self.wdt = WDT(timeout=int(1 + settings.controller.Period) * 1000 * 3)
+        self.wdt = WDT(timeout=int(1 + self.settings.controller.Period) * 1000 * 3)
 
         self.pid = PID(
-            settings.controller.Kp,
-            settings.controller.Ki,
-            settings.controller.Kd,
+            self.settings.controller.Kp,
+            self.settings.controller.Ki,
+            self.settings.controller.Kd,
             setpoint=25.0,
-            sample_time=settings.controller.Period,
-            proportional_on_measurement=settings.controller.PoM,
+            sample_time=self.settings.controller.Period,
+            proportional_on_measurement=self.settings.controller.PoM,
         )
         self.pid.output_limits = (0, 1.0)
 
@@ -49,18 +49,31 @@ class Controller:
         self.relay = PWMRelay()
         self.set_program("default.json")
         self.ct = CT(
-            settings.pinout.CT,
-            rating=settings.ct.CTRating,
-            sample_rate=settings.ct.CTSampleRate,
-            sample_count=settings.ct.CTSampleCount,
+            self.settings.pinout.CT,
+            rating=self.settings.ct.CTRating,
+            sample_rate=self.settings.ct.CTSampleRate,
+            sample_count=self.settings.ct.CTSampleCount,
         )
         self.ct.calibrate()
         self.ct.start()
 
+    def reset(self):
+        self.stop()
+        self.pid = PID(
+            self.settings.controller.Kp,
+            self.settings.controller.Ki,
+            self.settings.controller.Kd,
+            setpoint=25.0,
+            sample_time=self.settings.controller.Period,
+            proportional_on_measurement=self.settings.controller.PoM,
+        )
+        self.pid.output_limits = (0, 1.0)
+
     def get_setpoint(self):
-        if self.program is None:
-            raise ValueError("No program loaded")
-        setpoint = self.program.get_setpoint(self.runtime())
+        if self.program:
+            setpoint = self.program.get_setpoint(self.runtime())
+        else:
+            setpoint = self.setpoint
 
         if setpoint is None:
             self.stop()
@@ -74,7 +87,10 @@ class Controller:
             return self.paused_time - self.cycle_start
         return time.time() - self.cycle_start
 
-    def set_program(self, name):
+    def set_program(self, name: str = None):
+        if name is None:
+            self.program = None
+            return
         try:
             self.program = Program(name)
         except Exception as e:
@@ -85,7 +101,7 @@ class Controller:
         if self.running or self.paused:
             return
         self.relay.start()
-        self.pid.set_auto_mode(True, last_output=0)
+        self.pid.set_auto_mode(True, last_output=self.duty)
         self.cycle_start = time.time()
         self.running = True
 
@@ -132,6 +148,7 @@ class Controller:
         self.relay.set_duty(self.duty)
 
     def info(self):
+        p, i, d = self.pid.components
         return {
             "temp": self.temp,
             "duty": self.duty,
@@ -140,4 +157,7 @@ class Controller:
             "runtime": self.runtime(),
             "paused": self.paused,
             "current": self.ct.current,
+            "p": p,
+            "i": i,
+            "d": d,
         }
