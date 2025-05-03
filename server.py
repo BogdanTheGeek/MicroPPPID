@@ -107,7 +107,7 @@ async def load(request, name):
 @app.get("/settings")
 async def get_settings(request):
     settings = Settings()
-    data = settings.__dict__
+    data = settings.to_dict()
     log.debug(f"Settings sent: {data}")
     return json.dumps(data)
 

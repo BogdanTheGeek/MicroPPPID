@@ -51,7 +51,8 @@ var traces = [{
    name: 'Current',
    ...generateSamples(),
    mode: 'lines',
-   line: { color: '#ec6b34', shape: 'spline' }
+   line: { color: '#ec6b34', shape: 'spline' },
+   yaxis: 'y2'
 }];
 
 console.log(traces)
@@ -197,6 +198,7 @@ function updateReadings(status) {
 function onResize() {
    const tab = document.getElementById("tc-live");
    tab.style.height = window.innerHeight - tab.offsetTop - 10 + "px";
+   Plotly.Plots.resize('canvas');
 }
 
 /**
@@ -347,6 +349,57 @@ async function upload(ev) {
    });
 }
 
+function createSettingField(key, value) {
+   const row = document.createElement("tr");
+   const label = document.createElement("label");
+   label.innerHTML = key;
+   label.setAttribute("for", key);
+   const input = document.createElement("input");
+   input.name = key;
+   switch (typeof value) {
+      case "string":
+         input.type = "text";
+         input.value = value;
+         break;
+      case "number":
+         input.type = "number";
+         input.value = value;
+         break;
+      case "boolean":
+         input.type = "checkbox";
+         input.checked = value;
+         break;
+      default:
+         console.log("Unknown type: ", typeof data[key]);
+   }
+   const cell1 = document.createElement("td");
+   cell1.appendChild(label);
+   row.appendChild(cell1);
+   const cell2 = document.createElement("td");
+   cell2.appendChild(input);
+   row.appendChild(cell2);
+
+   return row;
+}
+
+function createSettingGroup(name, data) {
+   const group = document.createElement("fieldset");
+   group.name = name;
+   const legend = document.createElement("legend");
+   legend.innerHTML = name;
+   group.appendChild(legend);
+
+   const table = document.createElement("table");
+   for (const key in data) {
+      table.appendChild(createSettingField(key, data[key]));
+   }
+
+   group.appendChild(table);
+
+   return group
+}
+
+
 function getSettings() {
    const url = '/settings';
    console.log("Fetching settings");
@@ -366,39 +419,12 @@ function getSettings() {
          settings.innerHTML = "";
          const form = document.createElement("form");
          form.id = "settingsform";
-         const table = document.createElement("table");
-         for (const key in data) {
-            const row = document.createElement("tr");
-            const label = document.createElement("label");
-            label.innerHTML = key;
-            label.setAttribute("for", key);
-            const input = document.createElement("input");
-            input.name = key;
-            switch (typeof data[key]) {
-               case "string":
-                  input.type = "text";
-                  input.value = data[key];
-                  break;
-               case "number":
-                  input.type = "number";
-                  input.value = data[key];
-                  break;
-               case "boolean":
-                  input.type = "checkbox";
-                  input.checked = data[key];
-                  break;
-               default:
-                  console.log("Unknown type: ", typeof data[key]);
-            }
-            const cell1 = document.createElement("td");
-            cell1.appendChild(label);
-            row.appendChild(cell1);
-            const cell2 = document.createElement("td");
-            cell2.appendChild(input);
-            row.appendChild(cell2);
-            table.appendChild(row);
+
+         for (const [name, values] of Object.entries(data)) {
+            const group = createSettingGroup(name, values);
+            form.appendChild(group);
          }
-         form.appendChild(table);
+
          settings.appendChild(form);
       })
       .catch(error => {
@@ -409,6 +435,7 @@ function getSettings() {
 function saveSettings() {
    const form = document.getElementById("settingsform");
    const data = {};
+   let groupname = null;
    for (const p of form) {
       value = null;
       switch (p.type) {
@@ -421,11 +448,19 @@ function saveSettings() {
          case "text":
             value = p.value;
             break;
+         case "fieldset":
+            groupname = p.name;
+            continue;
          default:
             console.log("Unknown type: ", p.type);
             continue;
       }
-      data[p.name] = value;
+      if (groupname == null) {
+         console.error("No group name");
+         continue;
+      }
+      data[groupname] = data[groupname] || {};
+      data[groupname][p.name] = value;
    }
    console.log("Saving settings", data);
    const url = '/settings';
@@ -459,9 +494,20 @@ function onLoad() {
 
    const layout = {
       autosize: true,
-      margin: { t: 20, b: 20, l: 40, r: 0 },
+      margin: { t: 40, b: 40, l: 40, r: 40 },
       legend: { x: 0, y: 1, traceorder: 'normal', font: { size: 16 } },
-      yaxis: { automargin: true },
+      yaxis: {
+         automargin: true,
+         ticksuffix: '°C',
+      },
+      yaxis2: {
+         automargin: true,
+         overlaying: 'y',
+         side: 'right',
+         showgrid: false,
+         zeroline: false,
+         ticksuffix: ' A',
+      },
    }
    const config = { responsive: true }
    Plotly.newPlot('canvas', traces, layout, config);

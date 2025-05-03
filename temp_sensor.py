@@ -38,15 +38,15 @@ class TempSensor:
     def __init__(self):
         settings = Settings()
         sck = None
-        if settings.SCK != -1:
-            sck = Pin(settings.SCK, Pin.OUT)
+        if settings.pinout.SCK != -1:
+            sck = Pin(settings.pinout.SCK, Pin.OUT)
 
         miso = None
-        if settings.MISO != -1:
-            miso = Pin(settings.MISO, Pin.IN)
+        if settings.pinout.MISO != -1:
+            miso = Pin(settings.pinout.MISO, Pin.IN)
 
         spi = SPI(1, sck=sck, miso=miso, mosi=None)
-        cs = Pin(settings.CS, Pin.OUT)
+        cs = Pin(settings.pinout.CS, Pin.OUT)
         self.sensor = MAX31855(spi, cs)
         log.info("Temperature sensor initialized")
 

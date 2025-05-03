@@ -20,8 +20,8 @@ def connect():
 
     settings = Settings()
 
-    ssid = settings.SSID
-    password = settings.PASSWORD
+    ssid = settings.wifi.SSID
+    password = settings.wifi.PASSWORD
     wlan.config(hostname="MicroPPPID")
 
     if ssid and password and not wlan.isconnected():

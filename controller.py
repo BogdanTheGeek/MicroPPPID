@@ -33,15 +33,15 @@ class Controller:
     def __init__(self):
         settings = Settings()
 
-        self.wdt = WDT(timeout=int(1 + settings.Period) * 1000 * 3)
+        self.wdt = WDT(timeout=int(1 + settings.controller.Period) * 1000 * 3)
 
         self.pid = PID(
-            settings.Kp,
-            settings.Ki,
-            settings.Kd,
+            settings.controller.Kp,
+            settings.controller.Ki,
+            settings.controller.Kd,
             setpoint=25.0,
-            sample_time=settings.Period,
-            proportional_on_measurement=settings.PoM,
+            sample_time=settings.controller.Period,
+            proportional_on_measurement=settings.controller.PoM,
         )
         self.pid.output_limits = (0, 1.0)
 
@@ -49,10 +49,10 @@ class Controller:
         self.relay = PWMRelay()
         self.set_program("default.json")
         self.ct = CT(
-            settings.CTPin,
-            rating=settings.CTRating,
-            sample_rate=settings.CTSampleRate,
-            sample_count=settings.CTSampleCount,
+            settings.pinout.CT,
+            rating=settings.ct.CTRating,
+            sample_rate=settings.ct.CTSampleRate,
+            sample_count=settings.ct.CTSampleCount,
         )
         self.ct.calibrate()
         self.ct.start()

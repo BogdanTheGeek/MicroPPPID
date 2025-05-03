@@ -25,7 +25,7 @@ except ImportError:
 class Relay:
     def __init__(self):
         settings = Settings()
-        self.relay = Pin(settings.RELAY, Pin.OUT)
+        self.relay = Pin(settings.pinout.RELAY, Pin.OUT)
         self.relay.value(0)  # Turn off the relay initially
 
     def on(self, new_state=None):
@@ -35,12 +35,12 @@ class Relay:
 class PWMRelay:
     def __init__(self):
         settings = Settings()
-        self.relay = Pin(settings.RELAY, Pin.OUT)
+        self.relay = Pin(settings.pinout.RELAY, Pin.OUT)
         self.relay.value(0)  # Turn off the relay initially
         self.duty = 0
-        self.period = settings.Period
-        self.min_on_time = settings.MinOnTime
-        self.max_duty = settings.MaxDuty
+        self.period = settings.controller.Period
+        self.min_on_time = settings.controller.MinOnTime
+        self.max_duty = settings.controller.MaxDuty
 
     def set_duty(self, duty):
         if duty < 0:
