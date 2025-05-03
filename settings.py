@@ -15,6 +15,9 @@ class Settings:
             settings.Ki: float = 0.001
             settings.Kd: float = 0.002
             settings.Period: float = 1.0
+            settings.PoM: bool = True
+            settings.MinOnTime: float = 0.05
+            settings.MaxDuty: float = 0.75
             # Pinout
             settings.MISO: int = -1  # -1 means default
             settings.SCK: int = -1
@@ -28,6 +31,8 @@ class Settings:
             settings.CTRating: float = 30
             settings.CTSampleRate: float = 1200
             settings.CTSampleCount: int = 1000
+            # UI
+            settings.Refresh: float = 1.0
             settings.load()
         return settings
 
@@ -36,7 +41,7 @@ class Settings:
             with open("settings.json", "r") as file:
                 data = json.load(file)
                 self.update(data)
-        except json.JSONDecodeError:
+        except ValueError:
             log.error("Error decoding JSON from settings file")
         except FileNotFoundError:
             log.warning("Settings file not found, using default values")
@@ -52,7 +57,7 @@ class Settings:
             self.update(data)
         try:
             with open("settings.json", "w") as file:
-                json.dump(self.__dict__, file, indent=4)
+                json.dump(self.__dict__, file)
         except Exception as e:
             log.error(f"Error saving settings: {e}")
         pass

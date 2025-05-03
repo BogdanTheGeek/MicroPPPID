@@ -40,6 +40,8 @@ class Controller:
             settings.Ki,
             settings.Kd,
             setpoint=25.0,
+            sample_time=settings.Period,
+            proportional_on_measurement=settings.PoM,
         )
         self.pid.output_limits = (0, 1.0)
 
@@ -116,6 +118,11 @@ class Controller:
         self.wdt.feed()
 
         if not self.running:
+            return
+
+        if self.temp is None:
+            log.error("Temperature sensor not connected")
+            self.stop()
             return
 
         self.setpoint = self.get_setpoint()

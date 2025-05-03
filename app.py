@@ -24,8 +24,8 @@ async def main():
         await server.push(json.dumps(controller.info()))
 
         loop_time = (millis() - start) / 1000.0
-        if loop_time < settings.Period:
-            await asyncio.sleep(settings.Period - loop_time)
+        if loop_time < settings.Refresh:
+            await asyncio.sleep(settings.Refresh - loop_time)
         else:
             # TODO: log error
             log.error(f"Warning: Control loop took too long! {loop_time} seconds")

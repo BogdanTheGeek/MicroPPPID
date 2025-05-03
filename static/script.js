@@ -354,6 +354,14 @@ function getSettings() {
       .then(response => response.json())
       .then(data => {
          console.log("Settings received", data);
+         // sort alphabetically
+         const keys = Object.keys(data);
+         keys.sort();
+         const sortedData = {};
+         for (const key of keys) {
+            sortedData[key] = data[key];
+         }
+         data = sortedData;
          const settings = document.getElementById("settings");
          settings.innerHTML = "";
          const form = document.createElement("form");
@@ -467,10 +475,6 @@ function onLoad() {
    ws = connect();
 
    document.getElementById('startstop').onclick = () => {
-      if (state.paused) {
-         console.log("Controller is paused");
-         return;
-      }
       if (state.running) {
          command = "stop";
       }

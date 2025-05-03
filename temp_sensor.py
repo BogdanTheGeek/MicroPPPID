@@ -16,6 +16,10 @@ except ImportError:
         def temp(self) -> float:
             return 25.0
 
+        @property
+        def temp_c_fast(self) -> float:
+            return 25.0
+
     class Pin:
         OUT = 0
         IN = 1
@@ -46,9 +50,9 @@ class TempSensor:
         self.sensor = MAX31855(spi, cs)
         log.info("Temperature sensor initialized")
 
-    def read(self) -> float:
-        if not self.connected:
-            return 0.0
+    def read(self) -> float | None:
+        # if not self.connected:
+        #     return None
 
         try:
             temp = self.sensor.temp
@@ -57,4 +61,4 @@ class TempSensor:
         except RuntimeError as e:
             log.error(f"Error reading temperature sensor: {e}")
             self.connected = False
-        return 0.0
+        return None

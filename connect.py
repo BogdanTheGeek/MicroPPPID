@@ -12,7 +12,7 @@ log = Logger(__name__)
 
 def connect():
     leds = NeoPixel(Pin(48), 1)
-    leds[0] = (255, 0, 0)
+    leds[0] = (50, 0, 0)
     leds.write()
 
     wlan = WLAN()
@@ -26,7 +26,7 @@ def connect():
 
     if ssid and password and not wlan.isconnected():
         log.info(f"Connecting to: {ssid}...")
-        leds[0] = (255, 255, 0)
+        leds[0] = (50, 50, 0)
         leds.write()
         while True:
             try:
@@ -41,7 +41,7 @@ def connect():
             log.info("Waiting for connection...")
             sleep(1)
 
-    leds[0] = (0, 255, 0)
+    leds[0] = (0, 50, 0)
     leds.write()
     log.info("Connected to WiFi")
     log.info(f"IP: {wlan.ipconfig('addr4')[0]}")

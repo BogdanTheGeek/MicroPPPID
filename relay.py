@@ -33,22 +33,20 @@ class Relay:
 
 
 class PWMRelay:
-    MIN_ON_TIME = 0.5  # Minimum on time in seconds
-    MAX_DUTY = 1.0  # Maximum duty cycle
-
     def __init__(self):
         settings = Settings()
         self.relay = Pin(settings.RELAY, Pin.OUT)
         self.relay.value(0)  # Turn off the relay initially
         self.duty = 0
         self.period = settings.Period
+        self.min_on_time = settings.MinOnTime
+        self.max_duty = settings.MaxDuty
 
     def set_duty(self, duty):
         if duty < 0:
             duty = 0
-        elif duty > self.MAX_DUTY:
-            duty = self.MAX_DUTY
-
+        elif duty > self.max_duty:
+            duty = self.max_duty
         self.duty = duty
 
     def start(self):
@@ -65,7 +63,7 @@ class PWMRelay:
                 await asyncio.sleep(self.period)
                 continue
 
-            under_min = self.duty * self.period < self.MIN_ON_TIME
+            under_min = (self.duty * self.period) < self.min_on_time
             if under_min:
                 self.relay.value(0)
                 await asyncio.sleep(self.period)
