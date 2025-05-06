@@ -141,7 +141,6 @@ function addData(status) {
    traces[1].y.push(status.target);
    traces[2].x.push(timestamp);
    traces[2].y.push(status.current);
-   traces[3].x.push(timestamp);
 
    updateLayout();
 }
