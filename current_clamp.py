@@ -53,17 +53,17 @@ class CT:
             await asyncio.sleep(period)
             if sample_index == self.sample_count:
                 rms = (sum_squares / self.sample_count) ** 0.5
-                self.current = (rms / 1000) * self.rating
+                self.current = rms * self.rating
                 sum_squares = 0
                 sample_index = 0
 
-            sample = self.adc.read_uv() / 1000 - self.offset
+            sample = self.adc.read_uv() / 1_000_000 - self.offset
             sum_squares += sample * sample
             sample_index += 1
 
     def calibrate(self):
         sum: float = 0.0
         for i in range(100):
-            sum += self.adc.read_uv() / 1000
+            sum += self.adc.read_uv() / 1_000_000
             sleep(1 / 100)
         self.offset = sum / 100
