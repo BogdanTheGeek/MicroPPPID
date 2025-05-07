@@ -34,7 +34,7 @@ make bundle
 ```
 
 To flash the microcontroller (via rshell):
-> [!WARN]
+> [!WARNING]
 > You only need to do this once
 ```sh
 export ESPPORT=/dev/tty*
