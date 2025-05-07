@@ -37,6 +37,7 @@ class ControllerState {
 //------------------------------------------------------------------------------
 
 var g_ws = null;
+var g_settings = {};
 
 var state = new ControllerState({});
 
@@ -317,6 +318,21 @@ function setSetpoint() {
    });
 }
 
+function deleteFile(path) {
+   const url = '/delete';
+   fetch(url, {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ path: path }),
+   }).then(data => {
+      console.log(data);
+   }).catch(error => {
+      console.error('Error deleting file:', error);
+   });
+}
+
 /**
    * @brief  Create the list of programs
    * @param  {Array} programs: The list of programs
@@ -328,26 +344,37 @@ function createProgramList(programs) {
    table.className = "table";
    for (const program of programs) {
       const row = document.createElement("tr");
-      const cell = document.createElement("td");
-      cell.innerHTML = program;
-      const cell2 = document.createElement("td");
+
+      const downloadButton = document.createElement("a");
+      downloadButton.className = "icon";
+      downloadButton.innerHTML = "💾";
+      downloadButton.href = "/prog/" + program;
+      downloadButton.download = program;
+
       const deleteButton = document.createElement("button");
       deleteButton.innerHTML = "❌";
+      deleteButton.className = "icon";
       deleteButton.onclick = () => {
-         const url = '/delete/' + program;
-         fetch(url)
-            .then(data => {
-               console.log(data);
-               console.log("Program deleted: " + program);
-               getPrograms();
-            })
-            .catch(error => {
-               console.error('Error deleting program:', error);
-            });
+         console.log("Deleting program: " + program);
+         const confirmDelete = confirm("Are you sure you want to delete the program '" + program + "'?");
+         if (confirmDelete) {
+            deleteFile(program);
+            getPrograms();
+         }
       };
-      cell2.appendChild(deleteButton);
-      row.appendChild(cell2);
+
+      var cell = document.createElement("td");
+      cell.appendChild(downloadButton);
       row.appendChild(cell);
+
+      cell = document.createElement("td");
+      cell.appendChild(deleteButton);
+      row.appendChild(cell);
+
+      cell = document.createElement("td");
+      cell.innerHTML = program;
+      row.appendChild(cell);
+
       table.appendChild(row);
    }
 }
@@ -384,42 +411,112 @@ function getPrograms() {
    * @param  {Event} ev: The event
    * @return None
    */
-async function upload(ev) {
+async function uploadProg(ev) {
    ev.preventDefault();
    const file = document.getElementById('file').files[0];
    if (!file) {
       return;
    }
-   await fetch('/upload', {
+   fileUploader(file, "prog/" + file.name);
+   getPrograms();
+}
+
+/**
+   * @brief  Traverse the file tree
+   * @param  {FileSystemEntry} entry: The file system entry
+   * @param  {string} path: The path to the file
+   * @param  {function} cb: The callback function
+   * @return None
+   */
+function traverseFileTree(entry, path = "", cb) {
+   path = path || "";
+   if (entry.isFile) {
+      // Get file contents
+      entry.file(function(file) {
+         cb(file, entry.fullPath);
+      });
+   } else if (entry.isDirectory) {
+      // Get folder contents
+      var dirReader = entry.createReader();
+      dirReader.readEntries(function(entries) {
+         for (entry of entries) {
+            traverseFileTree(entry, path + entry.name + "/", cb);
+         }
+      });
+   }
+}
+
+/**
+   * @brief  Upload a file to the server
+   * @param  {File} file: The file to upload
+   * @param  {string} path: The path to the file
+   * @return None
+   */
+function fileUploader(file, path = file.name) {
+   const url = '/upload';
+   fetch(url, {
       method: 'POST',
       body: file,
       headers: {
          'Content-Type': 'application/octet-stream',
-         'Content-Disposition': `attachment; filename="${file.name}"`,
+         'Content-Disposition': `attachment; filename="${path}"`,
       },
    }).then(res => {
       if (res.ok) {
          setStatus("File uploaded", "green");
-         getPrograms();
       } else {
          setStatus("Error uploading file", "red");
       }
+   }).catch(error => {
+      console.error('Error uploading file:', error);
+      setStatus("Error uploading file", "red");
    });
 }
 
 /**
+   * @brief  Drop event handler
+   * @param  {Event} ev: The event
+   * @return None
+   */
+function dropHandler(ev) {
+   // Prevent default behavior (Prevent file from being opened)
+   ev.preventDefault();
+
+   var items = ev.dataTransfer.items;
+   for (item of items) {
+      const entry = item.webkitGetAsEntry();
+      if (entry) {
+         traverseFileTree(entry, "", (file, path) => {
+            const size = Math.round(file.size / 1024, 2);
+            console.log(`Uploading ${file.name}(${size}kb) to ${path}`);
+            if (file.size > g_settings.ui.MaxContentLengthInKB * 1024) {
+               console.log(`File too big: ${file.name}(${size}kb)`);
+               alert(`File '${path}' too big (${size}kb)\nMax size: ${g_settings.ui.MaxContentLengthInKB}kb\nAdjust Settings.`);
+               return;
+            }
+            fileUploader(file, path);
+         });
+      }
+   }
+}
+
+
+/**
    * @brief  Create a setting field
+   * @param  {string} group: The setting group
    * @param  {string} key: The setting key
    * @param  {string|number|boolean} value: The setting value
    * @return {HTMLElement} The setting field element
    */
-function createSettingField(key, value) {
+function createSettingField(group, key, value) {
    const row = document.createElement("tr");
    const label = document.createElement("label");
    label.innerHTML = key;
-   label.setAttribute("for", key);
+   const id = group + "_" + key;
+   label.setAttribute("for", id);
    const input = document.createElement("input");
    input.name = key;
+   input.id = id;
    switch (typeof value) {
       case "string":
          input.type = "text";
@@ -458,7 +555,7 @@ function createSettingGroup(name, data) {
 
    const table = document.createElement("table");
    for (const key in data) {
-      table.appendChild(createSettingField(key, data[key]));
+      table.appendChild(createSettingField(name, key, data[key]));
    }
 
    group.appendChild(table);
@@ -473,12 +570,13 @@ function createSettingGroup(name, data) {
    * @return None
    */
 function getSettings() {
-   const url = '/settings';
+   const url = '/settings.json';
    console.log("Fetching settings");
    fetch(url)
       .then(response => response.json())
       .then(data => {
          console.log("Settings received", data);
+         g_settings = data;
          // sort alphabetically
          const keys = Object.keys(data);
          keys.sort();
@@ -562,22 +660,8 @@ function saveSettings() {
       data[groupname][p.name] = value;
    }
    console.log("Saving settings", data);
-   const url = '/settings';
-   fetch(url, {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-   }).then(res => {
-      if (res.ok) {
-         setStatus("Settings saved", "green");
-         getSettings();
-         sendCommand(g_ws, "reset");
-      } else {
-         setStatus("Error saving settings", "red");
-      }
-   });
+   fileUploader(new Blob([JSON.stringify(data)], { type: 'application/json' }), 'settings.json');
+
 }
 
 /**
@@ -673,9 +757,15 @@ function onLoad() {
       sendCommand(g_ws, command);
    }
 
-   document.getElementById('fileform').addEventListener('submit', upload);
+   document.getElementById('fileform').addEventListener('submit', uploadProg);
    getPrograms();
    getSettings();
+
+   const progdrop = document.getElementById("progdrop");
+   progdrop.ondrop = dropHandler;
+   progdrop.ondragover = (e) => {
+      e.preventDefault();
+   }
 
 }
 

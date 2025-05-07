@@ -38,6 +38,7 @@ class Settings:
     class UI:
         def __init__(self):
             self.Refresh: float = 1.0
+            self.MaxContentLengthInKB = 1024
 
     def __new__(cls):
         global settings

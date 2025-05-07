@@ -1,4 +1,4 @@
-from microdot import Microdot, send_file
+from microdot import Microdot, send_file, Request
 from microdot.websocket import with_websocket
 import ujson as json
 from settings import Settings
@@ -6,7 +6,7 @@ from logger import Logger, Level
 import os
 import sys
 
-log = Logger(__name__, level=Level.DEBUG)
+log = Logger(__name__, level=Level.INFO)
 app = Microdot()
 websocket = None
 server = None
@@ -23,6 +23,9 @@ class Server:
         self.controller = controller
         global server
         server = self
+
+        settings = Settings()
+        Request.max_content_length = settings.ui.MaxContentLengthInKB * 1024  # in KB
 
         self.command_lookup = {
             "start": self.controller.start,
@@ -102,23 +105,6 @@ async def load(request, name):
     return f"Program {name} loaded"
 
 
-@app.get("/settings")
-async def get_settings(request):
-    settings = Settings()
-    data = settings.to_dict()
-    log.debug(f"Settings sent: {data}")
-    return json.dumps(data)
-
-
-@app.post("/settings")
-async def set_settings(request):
-    log.debug(f"New settings received: {request.json}")
-    data = request.json
-    settings = Settings()
-    settings.save(data)
-    return "Settings saved", 200
-
-
 @app.post("/setpoint")
 async def set_setpoint(request):
     server.controller.set_program()
@@ -133,17 +119,57 @@ async def set_setpoint(request):
     return "Setpoint set", 200
 
 
+def dir_exists(path):
+    try:
+        os.listdir(path)
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def get_dirpath(path: str) -> str:
+    path = path.split("/")
+    if len(path) > 1:
+        path = "/".join(path[:-1])
+    else:
+        path = ""
+    return path
+
+
+def mkdirdashp(path: str):
+    if path == "":
+        return
+    paths = path.split("/")
+    for i in range(len(paths)):
+        dir = "/".join(paths[: i + 1])
+        if not dir_exists(dir):
+            log.debug(f"Creating directory: {dir}")
+            os.mkdir(dir)
+
+
 @app.post("/upload")
 async def upload(request):
     # obtain the filename and size from request headers
     filename = request.headers["Content-Disposition"].split("filename=")[1].strip('"')
     size = int(request.headers["Content-Length"])
 
-    # sanitize the filename
-    filename = filename.replace("/", "_")
+    if ".." in filename:
+        # directory traversal is not allowed
+        return "Not found", 404
+
+    if filename.startswith("/"):
+        # make path relative
+        filename = filename[1:]
+
+    # create the directory if it doesn't exist
+    try:
+        mkdirdashp(get_dirpath(filename))
+    except Exception as e:
+        log.error(f"Error creating directory: {e}")
+        return "Error creating directory", 500
 
     # write the file to the files directory in 1K chunks
-    with open("prog/" + filename, "wb") as f:
+    with open(filename, "wb") as f:
         while size > 0:
             chunk = await request.stream.read(min(size, 1024))
             f.write(chunk)
@@ -153,14 +179,18 @@ async def upload(request):
     return "File uploaded successfully", 200
 
 
-@app.get("/delete/<name>")
-async def delete(request, name):
+@app.post("/delete")
+async def delete(request):
+    data = request.json
+    if "path" not in data:
+        return "No name provided", 400
+    path = data["path"]
     try:
-        os.remove("prog/" + name)
-        log.info(f"Deleted file: {name}")
+        os.remove(path)
+        log.info(f"Deleted file: {path}")
         return "File deleted successfully"
     except FileNotFoundError:
-        log.error(f"File not found: {name}")
+        log.error(f"File not found: {path}")
         return "File not found", 404
     except Exception as e:
         log.error(f"Error deleting file: {e}")
@@ -177,7 +207,6 @@ async def static(request, path):
         # if the path ends with a slash, serve index.html
         path += "index.html"
 
-    path = "static/" + path
     log.debug(f"Serving file: {path}")
     try:
         if server.compression:
@@ -192,7 +221,7 @@ async def static(request, path):
 
 @app.route("/")
 async def index(request):
-    return await static(request, "index.html")
+    return await static(request, "static/")
 
 
 if __name__ == "__main__":

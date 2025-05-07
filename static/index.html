@@ -4,7 +4,7 @@
 <head>
    <meta charset="UTF-8">
    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
-   <script src="script.js"></script>
+   <script src="static/script.js"></script>
    <style>
       select input {
          width: 6ch;
@@ -281,6 +281,35 @@
          border-radius: 20px;
          margin-right: 4px;
       }
+
+      .dropzone {
+         display: flex;
+         border: 1px solid blue;
+         font-size: 0.8em;
+         min-height: 100px;
+         align-items: center;
+         justify-content: center;
+         text-align: center;
+         margin-top: 10px;
+         border-radius: 10px;
+      }
+      .icon {
+         margin: 0 auto;
+         background-color: white;
+         border-radius: 10%;
+         border: 1px solid gray;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         font-size: 1em;
+         width: 1.5em;
+         height: 1.5em;
+         text-decoration: none;
+      }
+      .icon:hover {
+         background-color: #6190ff;
+         color: white;
+      }
    </style>
 
 <body onload="onLoad()" onresize="onResize()">
@@ -289,6 +318,7 @@
       <button id="tl-programs" class="tl" onclick="switchTab(event,'programs')">Programs</button>
       <button id="tl-logs" class="tl" onclick="switchTab(event,'logs')">Logs</button>
       <button id="tl-settings" class="tl" onclick="switchTab(event,'settings')">Settings</button>
+      <button id="tl-ota" class="tl" onclick="switchTab(event,'ota')">OTA</button>
       <span id="status" class="status"></span>
    </div>
 
@@ -365,6 +395,14 @@
       <button id="download" class="button" onclick="downloadSettings()">Download</button>
       <button id="reboot" class="button" style="background-color:red"
          onclick="if(confirm('Are you sure you want to reboot the controller?\nPage will reload automatically.')){sendCommand(ws, 'reboot');location.reload()}">Reboot</button>
+   </div>
+   <div id="tc-ota" class="tc">
+      <fieldset>
+         <legend>Drag and Drop</legend>
+         <div id="progdrop" class="dropzone">
+            <p>Drag and drop contents of build folder here.</p>
+         </div>
+      </fieldset>
    </div>
 </body>
 
