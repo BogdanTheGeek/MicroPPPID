@@ -2,11 +2,286 @@
 <html>
 
 <head>
-   <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
-   <link rel="stylesheet" type="text/css" href="style.css">
    <meta charset="UTF-8">
    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
    <script src="script.js"></script>
+   <style>
+      select input {
+         width: 6ch;
+         margin-left: 1ch;
+         margin-right: 1ch;
+      }
+
+      fieldset {
+         border-radius: 10px;
+      }
+
+      legend {
+         font-weight: bold;
+         color: #4934ec;
+      }
+
+      h1 {
+         color: #4934ec;
+         text-align: center;
+         font-size: 40px;
+      }
+
+      html,
+      body {
+         font-family: sans-serif;
+         color: black;
+         font-size: 20px;
+         margin: 0;
+      }
+
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button {
+         opacity: 1;
+      }
+
+      canvas {
+         -moz-user-select: none;
+         -webkit-user-select: none;
+         -ms-user-select: none;
+      }
+
+      table {
+         font-size: inherit;
+      }
+
+      .livedata {
+         width: fit-content;
+      }
+
+      .code {
+         font-family: monospace;
+         font-size: 0.7em;
+         background-color: #f0f0f0;
+         padding: 10px;
+         margin: 10px;
+         border-radius: 10px;
+         overflow: auto;
+      }
+
+      .button {
+         color: white;
+         background-color: #4934ec;
+         border: none;
+         min-width: 10ch;
+         border-radius: 20px;
+         font-weight: bolder;
+         font-size: 20px;
+         padding: 10px;
+         margin-top: 6px;
+         margin-left: 10px;
+      }
+
+      .button:hover {
+         background-color: #6190ff;
+      }
+
+      .button:active {
+         background-color: green;
+      }
+
+      .button:focus {
+         outline: 0;
+      }
+
+      .stopbutton {
+         background-color: green;
+      }
+
+      .stopbutton:hover {
+         background-color: green;
+      }
+
+      .stopbutton:active {
+         background-color: green;
+      }
+
+      .input_num {
+         background-color: transparent;
+         outline: none;
+         border: 1px;
+         font-size: 20px;
+      }
+
+      .slider {
+         -webkit-appearance: none;
+         width: 35ch;
+         height: 15px;
+         border-radius: 5px;
+         background: #d3d3d3;
+         outline: none;
+         -webkit-transition: .2s;
+         transition: opacity .2s;
+      }
+
+      .slider::-webkit-slider-thumb {
+         -webkit-appearance: none;
+         appearance: none;
+         width: 25px;
+         height: 25px;
+         border-radius: 50%;
+         background: #4934ec;
+         cursor: pointer;
+      }
+
+      .slider::-moz-range-thumb {
+         width: 25px;
+         height: 25px;
+         border-radius: 50%;
+         background: #4934ec;
+         cursor: pointer;
+      }
+
+      .tab {
+         overflow: hidden;
+         border: 1px solid #ccc;
+         border-bottom: none;
+         background-color: #4934ec;
+         border-radius: 24px 24px 0px 0px;
+         padding: 4px 0px 0px 4px;
+      }
+
+      .tab button {
+         background-color: inherit;
+         float: left;
+         border: none;
+         outline: none;
+         cursor: pointer;
+         padding: 14px 16px;
+         transition: 0.2s;
+         font-size: 17px;
+         font-weight: bold;
+         color: white;
+         border-radius: 20px 20px 0px 0px;
+      }
+
+      .tab button:hover {
+         color: white;
+         background-color: #6190ff;
+      }
+
+      .tab button.active {
+         color: #4934ec;
+         background-color: white;
+      }
+
+      .tc {
+         display: none;
+         padding: 6px 12px;
+         border: 1px solid #ccc;
+         border-top: none;
+         height: auto;
+         flex-direction: row;
+         flex-wrap: wrap;
+      }
+
+      .tc.active {
+         display: block;
+      }
+
+      .info {
+         border-radius: 20px;
+         padding-left: 0px;
+         padding-bottom: 6px;
+         margin-top: 6px;
+         margin-bottom: 0px;
+         margin-left: 0px;
+      }
+
+      .big_info {
+         font-size: 5em;
+         font-weight: bold;
+         font-family: sans-serif;
+         text-align: center;
+
+      }
+
+      .indicator {
+         font-size: 2em;
+         font-weight: bold;
+         font-family: sans-serif;
+         text-align: center;
+      }
+
+      .indicator.on {
+         color: white;
+         background-color: red;
+      }
+
+      .indicator.off {
+         color: black;
+         background-color: white;
+      }
+
+      .toggle {
+         position: relative;
+         width: 60px;
+         -webkit-user-select: none;
+         -moz-user-select: none;
+         -ms-user-select: none;
+      }
+
+      .toggle-checkbox {
+         display: none;
+      }
+
+      .toggle-label {
+         display: block;
+         overflow: hidden;
+         cursor: pointer;
+         height: 30px;
+         padding: 0;
+         line-height: 30px;
+         border: 2px solid #E3E3E3;
+         border-radius: 30px;
+         background-color: #DBDBDB;
+         transition: background-color 0.2s ease-in;
+      }
+
+      .toggle-label:before {
+         content: "";
+         display: block;
+         width: 30px;
+         margin: 0px;
+         background: #FFFFFF;
+         position: absolute;
+         top: 0;
+         bottom: 0;
+         right: 25px;
+         border: 2px solid #E3E3E3;
+         border-radius: 30px;
+         transition: all 0.2s ease-in 0s;
+      }
+
+      .toggle-checkbox:checked+.toggle-label {
+         background-color: #4934ec;
+      }
+
+      .toggle-checkbox:checked+.toggle-label,
+      .toggle-checkbox:checked+.toggle-label:before {
+         border-color: #4934ec;
+      }
+
+      .toggle-checkbox:checked+.toggle-label:before {
+         right: 0px;
+      }
+
+      .status {
+         background-color: white;
+         float: right;
+         padding: 12px;
+         transition: 0.2s;
+         font-size: 17px;
+         font-weight: bold;
+         border-radius: 20px;
+         margin-right: 4px;
+      }
+   </style>
 
 <body onload="onLoad()" onresize="onResize()">
    <div class="tab">
@@ -14,12 +289,12 @@
       <button id="tl-programs" class="tl" onclick="switchTab(event,'programs')">Programs</button>
       <button id="tl-logs" class="tl" onclick="switchTab(event,'logs')">Logs</button>
       <button id="tl-settings" class="tl" onclick="switchTab(event,'settings')">Settings</button>
+      <span id="status" class="status"></span>
    </div>
 
    <div id="tc-live" class="tc">
-      <div id="canvas" style="min-width: 70%; flex:1;">
-      </div>
-      <table>
+      <div id="canvas"></div>
+      <table id="livetable">
          <tr>
             <td style="align-content: baseline">
                <fieldset class="livedata">
@@ -69,7 +344,18 @@
       </fieldset>
    </div>
    <div id="tc-logs" class="tc">
-      <p id="log"></p>
+      <table>
+         <tr>
+            <td>Automatic Scrolling</td>
+            <td>
+               <div class="toggle">
+                  <input type="checkbox" id="autoscroll" class="toggle-checkbox" checked>
+                  <label class="toggle-label" for="autoscroll"></label>
+               </div>
+            </td>
+         </tr>
+      </table>
+      <div id="log" class="code"></div>
    </div>
    <div id="tc-settings" class="tc">
       <div id="settings" style="display:block;"></div>
@@ -77,6 +363,8 @@
       <button id="reset" class="button" onclick="resetSettings()">Reset</button>
       <br>
       <button id="download" class="button" onclick="downloadSettings()">Download</button>
+      <button id="reboot" class="button" style="background-color:red"
+         onclick="if(confirm('Are you sure you want to reboot the controller?\nPage will reload automatically.')){sendCommand(ws, 'reboot');location.reload()}">Reboot</button>
    </div>
 </body>
 

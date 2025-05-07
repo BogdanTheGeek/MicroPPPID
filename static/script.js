@@ -77,17 +77,42 @@ function connect() {
    ws = new WebSocket('ws://' + location.host + '/ws');
    ws.onopen = function() {
       console.log('Socket is open');
+      setStatus("Connected", "green");
    };
 
    ws.onmessage = function(e) {
-      console.log('Message:' + e.data);
       try {
          const status = JSON.parse(e.data);
          state = new ControllerState(status);
          updateReadings(state);
       }
       catch {
-         log(e.data)
+         console.log(e.data)
+         const log = document.getElementById("log");
+         const level = e.data.split(" ")[0];
+         var color = "black";
+         switch (level) {
+            case "INFO":
+               color = "green";
+               break;
+            case "WARNING":
+               color = "orange";
+               break;
+            case "ERROR":
+               color = "red";
+               break;
+            default:
+               color = "black";
+         }
+         const span = document.createElement("span");
+         span.innerHTML = e.data
+         span.style.color = color;
+         log.appendChild(span);
+         log.appendChild(document.createElement("br"));
+         const autoscroll = document.getElementById("autoscroll").checked;
+         if (autoscroll) {
+            log.scrollTop = log.scrollHeight;
+         }
       }
    };
 
@@ -96,34 +121,16 @@ function connect() {
       setTimeout(function() {
          g_ws = connect();
       }, 1000);
+      setStatus("Disconnected", "red");
    };
 
    ws.onerror = function(err) {
       console.log('Socket encountered error: ' + err.message);
+      setStatus("Error: " + err.message, "red");
       ws.close();
    };
 
    return ws;
-}
-
-/**
- * @brief  Update the layout of the plot
- * @param  None
- * @return None
- */
-function updateLayout() {
-
-   Plotly.redraw('canvas');
-   return;
-
-   const start = traces[0].x
-   const end = traces[0].x[traces[0].x.length - 1];
-
-   Plotly.relayout('canvas', {
-      xaxis: {
-         range: [start, end]
-      },
-   });
 }
 
 /**
@@ -142,7 +149,7 @@ function addData(status) {
    traces[2].x.push(timestamp);
    traces[2].y.push(status.current);
 
-   updateLayout();
+   Plotly.redraw('canvas');
 }
 
 /**
@@ -167,8 +174,8 @@ function switchTab(_, newTabName) {
    document.getElementById("tc-" + newTabName).className += " active";
    document.getElementById("tl-" + newTabName).className += " active";
 
+   Plotly.redraw('canvas');
    onResize();
-   updateLayout();
 
 }
 
@@ -207,9 +214,20 @@ function updateReadings(status) {
  * @return None
  */
 function onResize() {
-   const tab = document.getElementById("tc-live");
-   tab.style.height = window.innerHeight - tab.offsetTop - 10 + "px";
+   const canvas = document.getElementById("canvas");
+   const table = document.getElementById("livetable");
+   const availableHeight = window.innerHeight - canvas.offsetTop;
+   const tableHeight = table.offsetHeight;
+   var canvasHeight = availableHeight - tableHeight;
+   if (canvasHeight / availableHeight < 0.5) {
+      canvasHeight = availableHeight / 2;
+   }
+   canvas.style.height = canvasHeight + "px";
    Plotly.Plots.resize('canvas');
+
+   const log = document.getElementById("log");
+   const logHeight = window.innerHeight - log.offsetTop - 40;
+   log.style.height = logHeight + "px";
 }
 
 /**
@@ -271,6 +289,7 @@ function loadProgram() {
       })
       .catch(error => {
          console.error('Error loading program:', error);
+         setStatus("Error loading program", "red");
          select.selectedIndex = 0;
       });
 }
@@ -380,10 +399,10 @@ async function upload(ev) {
       },
    }).then(res => {
       if (res.ok) {
-         console.log("File uploaded");
+         setStatus("File uploaded", "green");
          getPrograms();
       } else {
-         console.log("Error uploading file");
+         setStatus("Error uploading file", "red");
       }
    });
 }
@@ -416,6 +435,9 @@ function createSettingField(key, value) {
          break;
       default:
          console.log("Unknown type: ", typeof data[key]);
+   }
+   if (key === "PASSWORD") {
+      input.type = "password";
    }
    const cell1 = document.createElement("td");
    cell1.appendChild(label);
@@ -469,6 +491,8 @@ function getSettings() {
          settings.innerHTML = "";
          const form = document.createElement("form");
          form.id = "settingsform";
+         form.style.display = "flex";
+         form.style.flexWrap = "wrap";
 
          for (const [name, values] of Object.entries(data)) {
             const group = createSettingGroup(name, values);
@@ -479,7 +503,24 @@ function getSettings() {
       })
       .catch(error => {
          console.error('Error fetching programs:', error);
+         setStatus("Error fetching settings", "red");
       });
+}
+
+/**
+   * @brief  Set the status message
+   * @param  {string} str: The status message
+   * @param  {string} color: The color of the message
+   * @return None
+   */
+function setStatus(str, color = "black") {
+   const status = document.getElementById("status");
+   status.innerHTML = str;
+   status.style.display = "block";
+   status.style.color = color;
+   setTimeout(() => {
+      status.style.display = "none";
+   }, 3000);
 }
 
 /**
@@ -506,8 +547,11 @@ function saveSettings() {
          case "fieldset":
             groupname = p.name;
             continue;
+         case "password":
+            value = p.value;
+            break;
          default:
-            console.log("Unknown type: ", p.type);
+            console.log(`Unknown type: '${p.type}'`);
             continue;
       }
       if (groupname == null) {
@@ -527,11 +571,11 @@ function saveSettings() {
       body: JSON.stringify(data),
    }).then(res => {
       if (res.ok) {
-         console.log("Settings saved");
+         setStatus("Settings saved", "green");
          getSettings();
          sendCommand(g_ws, "reset");
       } else {
-         console.log("Error saving settings");
+         setStatus("Error saving settings", "red");
       }
    });
 }
@@ -601,8 +645,8 @@ function onLoad() {
    const tab = document.location.hash || "#live";
    switchTab(null, tab.substring(1));
 
-   onResize();
    updateReadings(state);
+   onResize();
 
    g_ws = connect();
 

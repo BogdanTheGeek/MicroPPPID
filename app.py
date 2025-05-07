@@ -7,7 +7,7 @@ from logger import Logger
 from utils import millis
 import sys
 
-log = Logger(__name__)
+log = Logger("app")
 
 
 async def main():

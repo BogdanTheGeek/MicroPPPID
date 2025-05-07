@@ -11,7 +11,7 @@ LIB_OBJ := $(shell find lib -type f -name '*.py' | sed 's|lib/|build/lib/|' | se
 
 STATIC := $(wildcard static/*)
 STATIC_OBJ := $(patsubst static/%,build/static/%,$(STATIC))
-STATIC_OBJ := $(patsubst build/static/%.html,build/static/%.html.gz,$(STATIC_OBJ))
+STATIC_OBJ := $(patsubst build/static/%,build/static/%.gz,$(STATIC_OBJ))
 PROGS := $(wildcard prog/*.json)
 PROGS := $(patsubst prog/%.json,build/prog/%.json,$(PROGS))
 BOARD := $(wildcard board/*)
@@ -46,18 +46,17 @@ build/prog/%.json: prog/%.json build/
 	@echo "Copying $< -> $@"
 	@cp $< $@
 
-build/static/%.html.gz: static/%.html build/
+build/static/%.js.gz: static/%.js build/
+	@echo "Minifying $<"
+	@source venv/bin/activate && \
+	$(python) -m jsmin $< > $@.temp
+	@echo "Compressing $< -> $@"
+	@gzip -c $@.temp > $@ && \
+	rm $@.temp
+
+build/static/%.gz: static/% build/
 	@echo "Compressing $< -> $@"
 	@gzip -c $< > $@
-
-build/static/%.css: static/%.css build/
-	@echo "Copying $< -> $@"
-	@cp $< $@
-
-build/static/%.js: static/%.js build/
-	@echo "Minifying $< -> $@"
-	@source venv/bin/activate && \
-	$(python) -m jsmin $< > $@
 
 build/main.py: main.py build/
 	@echo "Copying $< -> $@"

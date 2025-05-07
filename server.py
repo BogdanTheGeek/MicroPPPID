@@ -2,10 +2,11 @@ from microdot import Microdot, send_file
 from microdot.websocket import with_websocket
 import ujson as json
 from settings import Settings
-from logger import Logger
+from logger import Logger, Level
 import os
+import sys
 
-log = Logger(__name__)
+log = Logger(__name__, level=Level.DEBUG)
 app = Microdot()
 websocket = None
 server = None
@@ -29,6 +30,7 @@ class Server:
             "pause": self.controller.pause,
             "resume": self.controller.resume,
             "reset": self.controller.reset,
+            "reboot": lambda: sys.exit(0),
         }
 
         try:
@@ -49,7 +51,7 @@ class Server:
                 await websocket.send(data)
                 return True
             except Exception as e:
-                log.error(f"Error sending data: {e}")
+                log.debug(f"Error sending data: {e}")
                 return False
         return False
 
@@ -67,6 +69,7 @@ async def echo(request, ws):
     log.info("WebSocket connection established")
     global websocket
     websocket = ws
+    log.set_websocket(ws)
     while True:
         data = await ws.receive()
         try:
@@ -82,15 +85,8 @@ async def echo(request, ws):
             continue
 
     log.info("WebSocket connection closed")
+    log.set_callback(None, local=False)
     websocket = None
-
-
-@app.route("/")
-async def index(request):
-    if server.compression:
-        return send_file("static/index.html", compressed=True, file_extension=".gz")
-    else:
-        return send_file("static/index.html")
 
 
 @app.route("/progs")
@@ -103,6 +99,7 @@ async def progs(request):
 @app.route("/load/<name>")
 async def load(request, name):
     server.controller.set_program(name)
+    return f"Program {name} loaded"
 
 
 @app.get("/settings")
@@ -179,11 +176,23 @@ async def static(request, path):
     if path.endswith("/"):
         # if the path ends with a slash, serve index.html
         path += "index.html"
+
+    path = "static/" + path
+    log.debug(f"Serving file: {path}")
     try:
-        return send_file("static/" + path)
+        if server.compression:
+            return send_file(path, compressed=True, file_extension=".gz")
+        else:
+            return send_file(path)
     except FileNotFoundError:
-        # if the file is not found, return a 404 error
-        return "File Not found", 404
+        log.error(f"File not found: {path}")
+
+    return "File Not found", 404
+
+
+@app.route("/")
+async def index(request):
+    return await static(request, "index.html")
 
 
 if __name__ == "__main__":
