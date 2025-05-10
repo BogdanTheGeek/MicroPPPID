@@ -43,7 +43,7 @@ colour_map = {
 }
 
 global_task = None
-global_deque = deque(maxlen=30)
+global_deque = deque([], 30)
 
 
 async def publish_task(ws):

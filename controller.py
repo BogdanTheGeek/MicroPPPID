@@ -29,6 +29,7 @@ class Controller:
     cycle_start = 0.0
     program = None
     paused = False
+    err_count = 0
 
     def __init__(self):
         self.settings = Settings()
@@ -136,10 +137,18 @@ class Controller:
         if not self.running:
             return
 
+        if self.err_count > 5:
+            log.error("Too many temp sensor errors")
+            self.err_count = 0
+            self.pause()
+            return
+
         if self.temp is None:
             log.error("Temperature sensor not connected")
-            self.stop()
+            self.err_count += 1
             return
+
+        self.err_count = 0
 
         self.setpoint = self.get_setpoint()
         self.pid.setpoint = self.setpoint

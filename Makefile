@@ -78,7 +78,8 @@ $(LIB_OBJ): $(LIB_SRC) build/
 
 .PHONY: bundle
 bundle: $(OBJ) $(LIB_OBJ) $(STATIC_OBJ) $(PROGS) $(BOARD_OBJ) build/main.py
-	@echo "Project bundleed successfully."
+	@echo "Project bundled successfully."
+	@echo "Total size: $(shell du -sh build | cut -f1)"
 
 .PHONY: flash
 flash:

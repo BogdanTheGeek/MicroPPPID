@@ -176,6 +176,12 @@ async def upload(request):
             size -= len(chunk)
 
     log.info("Successfully saved file: " + filename)
+    if filename == "settings.json":
+        log.info("Reloading settings")
+        settings = Settings()
+        settings.load()
+        settings.save()  # apply defaults
+        settings.load()
     return "File uploaded successfully", 200
 
 
@@ -207,14 +213,16 @@ async def static(request, path):
         # if the path ends with a slash, serve index.html
         path += "index.html"
 
+    filetype = path.split(".")[-1]
+
     log.debug(f"Serving file: {path}")
     try:
-        if server.compression:
+        if server.compression and filetype in ["html", "css", "js"]:
             return send_file(path, compressed=True, file_extension=".gz")
         else:
             return send_file(path)
-    except FileNotFoundError:
-        log.error(f"File not found: {path}")
+    except Exception as e:
+        log.error(f"Error sending '{path}': {e}")
 
     return "File Not found", 404
 
