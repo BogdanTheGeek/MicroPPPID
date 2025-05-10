@@ -1,4 +1,4 @@
-![demo.gif](https://github.com/user-attachments/assets/850b2358-cd7c-4ac2-bd45-b85df9be10d7)
+![demo.gif](https://github.com/user-attachments/assets/2fe77d1e-2936-461c-9aa3-52bfa56b7a7f)
 
 ## Why
 I have many hobbies, the best of which (by far) is pottery. I needed a programmable kiln controller because the one I had was $#!t and most of the open-source ones are even worse. Therefore, in the words of the world's most popular fascist:
