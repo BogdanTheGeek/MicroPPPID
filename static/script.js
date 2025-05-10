@@ -38,6 +38,7 @@ class ControllerState {
 
 var g_ws = null;
 var g_settings = {};
+var g_prog = {};
 
 var state = new ControllerState({});
 
@@ -74,6 +75,11 @@ function generateSamples() {
 }
 
 
+/**
+   * @brief  Connect to the WebSocket server
+   * @param  None
+   * @return {WebSocket} The WebSocket connection
+   */
 function connect() {
    ws = new WebSocket('ws://' + location.host + '/ws');
    ws.onopen = function() {
@@ -180,6 +186,12 @@ function switchTab(_, newTabName) {
 
 }
 
+/**
+   * @brief  Round a number to a specified number of decimal places
+   * @param {number} value: The number to round
+   * @param {number} decimals: The number of decimal places to round to
+   * @return {number} The rounded number
+   */
 function round(value, decimals) {
    return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
 }
@@ -198,10 +210,8 @@ function updateReadings(status) {
    document.getElementById("i").innerHTML = "I: " + round(status.i, 3);
    document.getElementById("d").innerHTML = "D: " + round(status.d, 3);
 
-   const hours = Math.floor(status.runtime / 3600);
-   const minutes = Math.floor((status.runtime % 3600) / 60);
-   const seconds = Math.floor(status.runtime % 60);
-   document.getElementById("runtime").innerHTML = `Runtime: ${hours}h ${minutes}m ${seconds}s`;
+   const runtimeString = toTime(status.runtime);
+   document.getElementById("runtime").innerHTML = `Runtime: ${runtimeString}`;
 
    updateStartStopButton();
    updatePauseResumeButton();
@@ -225,6 +235,7 @@ function onResize() {
    }
    canvas.style.height = canvasHeight + "px";
    Plotly.Plots.resize('canvas');
+   Plotly.Plots.resize('proggraph');
 
    const log = document.getElementById("log");
    const logHeight = window.innerHeight - log.offsetTop - 40;
@@ -295,6 +306,11 @@ function loadProgram() {
       });
 }
 
+/**
+   * @brief  Set the setpoint
+   * @param  None
+   * @return None
+   */
 function setSetpoint() {
    const setpoint = parseFloat(document.getElementById("setpoint").value);
    if (isNaN(setpoint)) {
@@ -318,6 +334,11 @@ function setSetpoint() {
    });
 }
 
+/**
+   * @brief  Delete a file from the server
+   * @param  {string} path: The path to the file
+   * @return None
+   */
 function deleteFile(path) {
    const url = '/delete';
    fetch(url, {
@@ -334,6 +355,255 @@ function deleteFile(path) {
 }
 
 /**
+   * @brief  Create a new program
+   * @param  {string} name: The name of the program
+   * @param  {object} instructions: The program data
+   * @return None
+   */
+function createProgram(name, instructions = []) {
+   var filename = name
+   if (!filename.endsWith(".json")) {
+      filename += ".json";
+   }
+   console.log(`Creating program: '${filename}'`, instructions);
+   const data = { name: filename, instructions: instructions };
+   const file = new File([JSON.stringify(data)], filename, { type: 'application/json' });
+   fileUploader(file, "prog/" + filename);
+   getPrograms();
+}
+
+/**
+   * @brief  Create a new program row
+   * @param  {number} temp: The temperature
+   * @param  {number} duration: The duration
+   * @param  {number} time: The time
+   * @return {HTMLElement} The program row element
+   */
+function createProgramRow(temp, duration, time) {
+
+   const row = document.createElement("tr");
+   row.draggable = true;
+   var cell = null;
+   var input = null;
+
+   cell = document.createElement("td");
+   const deleteButton = document.createElement("button");
+   deleteButton.innerHTML = "❌";
+   deleteButton.className = "icon";
+   deleteButton.onclick = (ev) => {
+      const index = ev.target.parentElement.parentElement.rowIndex;
+      console.log("Deleting program row: " + index);
+      const confirmDelete = confirm("Are you sure you want to delete the program row " + index + "?");
+      if (confirmDelete) {
+         document.getElementById("progtable").deleteRow(index);
+      }
+   };
+   cell.appendChild(deleteButton);
+   row.appendChild(cell);
+
+   cell = document.createElement("td");
+   input = document.createElement("input");
+   input.type = "number";
+   input.value = temp;
+   input.onchange = recomputeProgram;
+   input.min = 0;
+   input.step = 1;
+   cell.appendChild(input);
+   cell.appendChild(document.createTextNode("°C"));
+   row.appendChild(cell);
+
+   cell = document.createElement("td");
+   input = document.createElement("input");
+   input.type = "number";
+   input.value = duration;
+   input.onchange = recomputeProgram;
+   input.min = 0;
+   input.step = 1;
+   cell.appendChild(input);
+   row.appendChild(cell);
+
+   cell = document.createElement("td");
+   cell.innerHTML = toTime(time);
+   row.appendChild(cell);
+
+   row.appendChild(cell);
+
+   return row;
+}
+
+/**
+   * @brief  Create the program table
+   * @param  {object} prog: The program object
+   * @return None
+   */
+function createProgramTable(prog) {
+   const table = document.getElementById("progtable");
+   table.innerHTML = "";
+   table.className = "dragtable";
+   const header = document.createElement("thead");
+   const headerRow = document.createElement("tr");
+   const columns = ["", "Temperature", "Duration", "Time"];
+   for (const col of columns) {
+      const th = document.createElement("th");
+      th.innerHTML = col;
+      headerRow.appendChild(th);
+   }
+   header.appendChild(headerRow);
+   table.appendChild(header);
+   const body = document.createElement("tbody");
+   for (var i = 0; i < prog.instructions.length; i++) {
+      const instruction = prog.instructions[i];
+
+      if (instruction.duration == undefined) {
+         var duration = instruction.time;
+         if (i > 0) {
+            duration = instruction.time - prog.instructions[i - 1].time;
+         }
+         instruction.duration = duration;
+      }
+
+      const row = createProgramRow(instruction.temp, instruction.duration, instruction.time);
+      body.appendChild(row);
+   }
+   table.appendChild(body);
+
+   const tableBodyRow = Array.from(table.children[1].children);
+   Array.from(table.children[0].children[0].children).forEach(function(header, index) {
+      new ResizeObserver(function() {
+         tableBodyRow.forEach(function(cell) {
+            cell.children[index].style.width = header.offsetWidth + 'px'
+         })
+      }).observe(header)
+   });
+
+   tableBodyRow.forEach(function(cell) {
+      cell.addEventListener('dragstart', function() {
+         cell.classList.add('dragging')
+      })
+      cell.addEventListener('dragend', function() {
+         cell.classList.remove('dragging')
+      })
+   });
+   body.addEventListener('dragover', function(e) {
+      e.preventDefault()
+      const newElement = body.querySelector('.dragging')
+      const refElement = Array.from(body.children).find(function(item) {
+         const bound = item.getBoundingClientRect()
+         return e.clientY <= bound.y + bound.height / 2
+      })
+      body.insertBefore(newElement, refElement)
+   });
+   body.addEventListener('dragend', recomputeProgram);
+
+   const addButton = document.getElementById("progaddrow");
+   addButton.onclick = () => {
+      const row = createProgramRow(0, 0, 0);
+      body.appendChild(row);
+      row.children[1].children[0].focus();
+      recomputeProgram();
+   }
+
+   const saveButton = document.getElementById("progsave");
+   saveButton.onclick = () => {
+      const name = prompt("Enter program name", prog.name);
+      createProgram(name, g_prog.instructions);
+   }
+}
+
+/**
+   * @brief  Recompute the program
+   * @param {Event} ev: The event
+   * @return None
+   */
+function recomputeProgram(_) {
+   const body = document.getElementById("progtable").children[1];
+   const instructions = [];
+   var time = 0;
+   for (var i = 0; i < body.children.length; i++) {
+      const row = body.children[i];
+      const temp = parseFloat(row.children[1].children[0].value);
+      const duration = parseInt(row.children[2].children[0].value);
+      time += duration;
+      row.children[3].innerHTML = toTime(time);
+      instructions.push({ temp: temp, duration: duration, time: time });
+   }
+   g_prog.instructions = instructions;
+   plotProgram(instructions);
+
+};
+
+/**
+   * @brief  Convert time to string
+   * @param  {number} time: The time in seconds
+   * @return None
+   */
+function toTime(time) {
+   const hours = String(Math.floor(time / 3600)).padStart(2, '0');
+   const minutes = String(Math.floor((time % 3600) / 60)).padStart(2, '0');
+   const seconds = String(Math.floor(time % 60)).padStart(2, '0');
+   return `${hours}:${minutes}:${seconds}`;
+}
+
+/**
+   * @brief  Plot the program
+   * @param  {Array} instructions: The list of instructions
+   * @return None
+   */
+function plotProgram(instructions) {
+   const x = [];
+   const y = [];
+   const labels = [];
+   for (const instruction of instructions) {
+      x.push(instruction.time);
+      y.push(instruction.temp);
+      labels.push(toTime(instruction.time));
+   }
+   const traces = [{
+      name: 'Program',
+      x: x,
+      y: y,
+      mode: 'lines',
+      line: { color: '#4934ec' }
+   }];
+   Plotly.newPlot('proggraph', traces, {
+      autosize: true,
+      margin: { t: 20, b: 40, l: 40, r: 40 },
+      legend: { x: 0, y: 1, traceorder: 'normal', font: { size: 16 } },
+      yaxis: {
+         automargin: true,
+         ticksuffix: '°C',
+         side: 'left',
+      },
+      xaxis: {
+         automargin: true,
+         side: 'bottom',
+         tickvals: x,
+         ticktext: labels,
+         visible: true,
+      },
+   }, { responsive: true });
+}
+
+/**
+   * @brief  Generate an editable program
+   * @param  {string} name: The name of the program
+   * @return None
+   */
+function generateEditableProgram(name) {
+   const url = '/prog/' + name;
+   fetch(url)
+      .then(response => response.json())
+      .then(data => {
+         console.log(data);
+         createProgramTable(data);
+         plotProgram(data.instructions);
+      })
+      .catch(error => {
+         console.error('Error fetching program:', error);
+      });
+}
+
+/**
    * @brief  Create the list of programs
    * @param  {Array} programs: The list of programs
    * @return None
@@ -344,6 +614,15 @@ function createProgramList(programs) {
    table.className = "table";
    for (const program of programs) {
       const row = document.createElement("tr");
+
+      const editButton = document.createElement("button");
+      editButton.className = "icon";
+      editButton.innerHTML = "✏️";
+      editButton.onclick = () => {
+         console.log("Editing program: " + program);
+         generateEditableProgram(program);
+      };
+
 
       const downloadButton = document.createElement("a");
       downloadButton.className = "icon";
@@ -358,12 +637,16 @@ function createProgramList(programs) {
          console.log("Deleting program: " + program);
          const confirmDelete = confirm("Are you sure you want to delete the program '" + program + "'?");
          if (confirmDelete) {
-            deleteFile(program);
+            deleteFile('prog/' + program);
             getPrograms();
          }
       };
 
       var cell = document.createElement("td");
+      cell.appendChild(editButton);
+      row.appendChild(cell);
+
+      cell = document.createElement("td");
       cell.appendChild(downloadButton);
       row.appendChild(cell);
 
@@ -760,10 +1043,13 @@ function onLoad() {
    document.getElementById('fileform').addEventListener('submit', uploadProg);
    getPrograms();
    getSettings();
+   createProgramTable({ name: "program.json", instructions: [] });
+   plotProgram([]);
 
-   const progdrop = document.getElementById("progdrop");
-   progdrop.ondrop = dropHandler;
-   progdrop.ondragover = (e) => {
+
+   const filedropper = document.getElementById("filedropper");
+   filedropper.ondrop = dropHandler;
+   filedropper.ondragover = (e) => {
       e.preventDefault();
    }
 

@@ -50,6 +50,42 @@
          font-size: inherit;
       }
 
+      .dragtable {
+         border-collapse: collapse;
+         width: 100%;
+         margin: 0 auto;
+         padding: 0;
+         border-radius: 10px;
+         border: 1px solid gray;
+      }
+
+      .dragtable th,
+      .dragtable td {
+         padding: 8px;
+         text-align: center;
+         border: 1px solid gray;
+         color: black;
+         font-size: 0.8em;
+      }
+
+      .dragtable th {
+         background-color: gray;
+         color: white;
+         font-weight: bold;
+      }
+
+      .dragtable tr:nth-child(even) {
+         background-color: #dadada;
+      }
+
+      .dragtable tr:nth-child(odd) {
+         background-color: #fafafa;
+      }
+
+      .dragtable .dragging {
+         opacity: .25;
+      }
+
       .livedata {
          width: fit-content;
       }
@@ -293,6 +329,7 @@
          margin-top: 10px;
          border-radius: 10px;
       }
+
       .icon {
          margin: 0 auto;
          background-color: white;
@@ -306,6 +343,7 @@
          height: 1.5em;
          text-decoration: none;
       }
+
       .icon:hover {
          background-color: #6190ff;
          color: white;
@@ -362,15 +400,22 @@
 
    <div id="tc-programs" class="tc">
       <fieldset>
+         <legend>Graph</legend>
+         <div id="proggraph"></div>
+         <table id="progtable"></table>
+         <input id="progaddrow" type="button" class="button" value="Add Row"></input>
+         <input id="progsave" type="button" class="button" value="Save"></input>
+      </fieldset>
+      <fieldset>
+         <legend>Available</legend>
+         <table id="programs"></table>
+      </fieldset>
+      <fieldset>
          <legend>Upload</legend>
          <form id="fileform">
             <input type="file" id="file" name="file" />
             <input type="submit" value="Upload" />
          </form>
-      </fieldset>
-      <fieldset>
-         <legend>Available</legend>
-         <table id="programs"></table>
       </fieldset>
    </div>
    <div id="tc-logs" class="tc">
@@ -399,7 +444,7 @@
    <div id="tc-ota" class="tc">
       <fieldset>
          <legend>Drag and Drop</legend>
-         <div id="progdrop" class="dropzone">
+         <div id="filedropper" class="dropzone">
             <p>Drag and drop contents of build folder here.</p>
          </div>
       </fieldset>
