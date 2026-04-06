@@ -68,6 +68,8 @@ class CT:
             sample_index += 1
 
     def calibrate(self):
+        if not self.adc:
+            return
         sum: float = 0.0
         for i in range(100):
             sum += self.adc.read_uv() / 1_000_000
