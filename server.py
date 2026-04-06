@@ -182,6 +182,7 @@ async def upload(request):
         settings.load()
         settings.save()  # apply defaults
         settings.load()
+        server.controller.reset()
     return "File uploaded successfully", 200
 
 

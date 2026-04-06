@@ -1,4 +1,5 @@
-import utime
+from time import ticks_ms
+
 
 def _clamp(value, limits):
     lower, upper = limits
@@ -10,6 +11,7 @@ def _clamp(value, limits):
         return lower
     return value
 
+
 class PID(object):
     """A simple PID controller."""
 
@@ -20,11 +22,11 @@ class PID(object):
         Kd=0.0,
         setpoint=0,
         sample_time=None,
-        scale='s',
+        scale="s",
         output_limits=[None, None],
         auto_mode=True,
         proportional_on_measurement=False,
-        error_map=None
+        error_map=None,
     ):
         """
         Initialize a new PID controller.
@@ -58,26 +60,23 @@ class PID(object):
 
         def get_scale(x):
             return {
-                's' : 'time',
-                'ms': 'ticks_ms',
-                'us': 'ticks_us',
-                'ns': 'time_ns',
-                'cpu':'ticks_cpu'
-            }.get(x, 'time') # seconds is default if x is not found
+                "s": "time",
+                "ms": "ticks_ms",
+                "us": "ticks_us",
+                "ns": "time_ns",
+                "cpu": "ticks_cpu",
+            }.get(x, "time")  # seconds is default if x is not found
+
         self.scale = get_scale(scale)
 
         def get_unit(x):
-            return {
-                's' : 1,
-                'ms': 1e-3,
-                'us': 1e-6,
-                'ns': 1e-9,
-                'cpu':1
-            }.get(x, 1) # tunings should be explicitly defined at 'ticks_cpu'
+            return {"s": 1, "ms": 1e-3, "us": 1e-6, "ns": 1e-9, "cpu": 1}.get(
+                x, 1
+            )  # tunings should be explicitly defined at 'ticks_cpu'
+
         self.unit = get_unit(scale)
 
-        if hasattr(utime, self.scale) and callable(func := getattr(utime, self.scale)):
-            self.time = func
+        self.time = ticks_ms
 
         self._min_output, self._max_output = None, None
         self._auto_mode = auto_mode
@@ -95,6 +94,9 @@ class PID(object):
         self.output_limits = output_limits
         self.reset()
 
+    def ticks_diff(self, now, last):
+        return now - last
+
     def __call__(self, input_, dt=None):
         """
         Update the PID controller.
@@ -111,17 +113,24 @@ class PID(object):
 
         now = self.time()
         if dt is None:
-            dt = utime.ticks_diff(now,self._last_time) if (utime.ticks_diff(now,self._last_time)) else 1e-16
-        elif dt <= 0:
-            raise ValueError('dt has negative value {}, must be positive'.format(dt))
+            dt = self.ticks_diff(now, self._last_time)
 
-        if self.sample_time is not None and dt < self.sample_time and self._last_output is not None:
+        if dt <= 0:
+            raise ValueError("dt has negative value {}, must be positive".format(dt))
+
+        if (
+            self.sample_time is not None
+            and dt < self.sample_time
+            and self._last_output is not None
+        ):
             # Only update every sample_time
             return self._last_output
 
         # Compute error terms
         error = self.setpoint - input_
-        d_input = input_ - (self._last_input if (self._last_input is not None) else input_)
+        d_input = input_ - (
+            self._last_input if (self._last_input is not None) else input_
+        )
 
         # Check if must map the error
         if self.error_map is not None:
@@ -137,7 +146,9 @@ class PID(object):
 
         # Compute integral and derivative terms
         self._integral += (self.Ki * self.unit) * error * dt
-        self._integral = _clamp(self._integral, self.output_limits)  # Avoid integral windup
+        self._integral = _clamp(
+            self._integral, self.output_limits
+        )  # Avoid integral windup
 
         self._derivative = -(self.Kd / self.unit) * d_input / dt
 
@@ -154,13 +165,13 @@ class PID(object):
 
     def __repr__(self):
         return (
-            '{self.__class__.__name__}('
-            'Kp={self.Kp!r}, Ki={self.Ki!r}, Kd={self.Kd!r}, '
-            'setpoint={self.setpoint!r}, sample_time={self.sample_time!r}, '
-            'output_limits={self.output_limits!r}, auto_mode={self.auto_mode!r}, '
-            'proportional_on_measurement={self.proportional_on_measurement!r},'
-            'error_map={self.error_map!r}'
-            ')'
+            "{self.__class__.__name__}("
+            "Kp={self.Kp!r}, Ki={self.Ki!r}, Kd={self.Kd!r}, "
+            "setpoint={self.setpoint!r}, sample_time={self.sample_time!r}, "
+            "output_limits={self.output_limits!r}, auto_mode={self.auto_mode!r}, "
+            "proportional_on_measurement={self.proportional_on_measurement!r},"
+            "error_map={self.error_map!r}"
+            ")"
         ).format(self=self)
 
     @property
@@ -233,7 +244,7 @@ class PID(object):
         min_output, max_output = limits
 
         if (None not in limits) and (max_output < min_output):
-            raise ValueError('lower limit must be less than upper limit')
+            raise ValueError("lower limit must be less than upper limit")
 
         self._min_output = min_output
         self._max_output = max_output

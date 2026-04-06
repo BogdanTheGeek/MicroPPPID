@@ -41,7 +41,8 @@ class Controller:
             self.settings.controller.Ki,
             self.settings.controller.Kd,
             setpoint=25.0,
-            sample_time=self.settings.controller.Period,
+            sample_time=self.settings.controller.Period * 1000,
+            scale="ms",
             proportional_on_measurement=self.settings.controller.PoM,
         )
         self.pid.output_limits = (0, 1.0)
@@ -65,10 +66,13 @@ class Controller:
             self.settings.controller.Ki,
             self.settings.controller.Kd,
             setpoint=25.0,
-            sample_time=self.settings.controller.Period,
+            sample_time=self.settings.controller.Period * 1000,
+            scale="ms",
             proportional_on_measurement=self.settings.controller.PoM,
         )
         self.pid.output_limits = (0, 1.0)
+        self.relay = PWMRelay()
+        log.info(f"Controller reset with Kp={self.pid.Kp}, Ki={self.pid.Ki}, Kd={self.pid.Kd}, Period={self.pid.sample_time}s, PoM={self.pid.proportional_on_measurement}")
 
     def get_setpoint(self):
         if self.program:
