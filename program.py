@@ -5,7 +5,7 @@ log = Logger(__name__)
 
 
 class Instruction:
-    def __init__(self, temp, time):
+    def __init__(self, temp, time, **kwargs):
         self.temp = temp  # degrees
         self.time = time  # seconds
 

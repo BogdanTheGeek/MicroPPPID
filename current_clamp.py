@@ -29,7 +29,12 @@ class CT:
         sample_count: int = 1000,
     ):
         self.rating: float = rating
-        self.adc = ADC(Pin(pin))
+        self.pin: int = pin
+        try:
+            self.adc = ADC(Pin(pin))
+        except Exception as e:
+            print(f"Error initializing ADC: {e}")
+            self.adc = None
         self.sample_rate: float = sample_rate
         self.sample_count: int = sample_count
         self.task = None
@@ -37,7 +42,8 @@ class CT:
         self.current: float = 0.0  # in A
 
     def start(self):
-        self.task = asyncio.create_task(self.loop())
+        if self.adc:
+            self.task = asyncio.create_task(self.loop())
 
     def stop(self):
         if self.task:
